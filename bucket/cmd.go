@@ -19,7 +19,7 @@ type Cmd struct {
 
 func (cmd *Cmd) Run(mochaDir string) error {
 	if cmd.Known != nil {
-		return cmd.Known.Run()
+		return cmd.Known.Run(mochaDir)
 	}
 	if cmd.Add != nil {
 		return cmd.Add.Run(mochaDir)

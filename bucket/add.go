@@ -14,7 +14,12 @@ type addCmd struct {
 }
 
 func (cmd *addCmd) Run(mochaDir string) error {
-	knownBuckets, err := parseBucketList("buckets.json")
+	knownBucketsPath := filepath.Join(mochaDir, "known_buckets.json")
+	if !filepath.IsAbs(knownBucketsPath) {
+		return fmt.Errorf("%s is not an absolute path", knownBucketsPath)
+	}
+
+	knownBuckets, err := parseBucketList(knownBucketsPath)
 	if err != nil {
 		return err
 	}

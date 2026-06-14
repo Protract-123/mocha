@@ -13,16 +13,22 @@ type knownCmd struct{}
 
 const scoopBucketsJsonSource = "https://raw.githubusercontent.com/ScoopInstaller/Scoop/refs/heads/master/buckets.json"
 
-func (cmd *knownCmd) Run() error {
-	_, err := os.Stat("buckets.json")
+func (cmd *knownCmd) Run(mochaDir string) error {
+	knownBucketsPath := filepath.Join(mochaDir, "known_buckets.json")
+
+	if !filepath.IsAbs(knownBucketsPath) {
+		return fmt.Errorf("%s is not an absolute path", knownBucketsPath)
+	}
+
+	_, err := os.Stat(knownBucketsPath)
 	if os.IsNotExist(err) {
-		err := updateKnownBuckets()
+		err := updateKnownBuckets(mochaDir)
 		if err != nil {
 			return err
 		}
 	}
 
-	knownBuckets, err := parseBucketList("buckets.json")
+	knownBuckets, err := parseBucketList(knownBucketsPath)
 	if err != nil {
 		return err
 	}
@@ -36,16 +42,10 @@ func (cmd *knownCmd) Run() error {
 
 // TODO: move to update command
 
-func updateKnownBuckets() error {
-	exePath, err := os.Executable()
-	if err != nil {
-		println(err)
-	}
+func updateKnownBuckets(mochaDir string) error {
+	bucketsPath := filepath.Join(mochaDir, "known_buckets.json")
 
-	exeDir := filepath.Dir(exePath)
-	bucketsPath := filepath.Join(exeDir, "buckets.json")
-
-	err = downloadFile(scoopBucketsJsonSource, bucketsPath)
+	err := downloadFile(scoopBucketsJsonSource, bucketsPath)
 	if err != nil {
 		return err
 	}
