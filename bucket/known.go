@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -23,27 +22,13 @@ func (cmd *knownCmd) Run() error {
 		}
 	}
 
-	bucketsJson, err := os.ReadFile("buckets.json")
+	knownBuckets, err := parseBucketList("buckets.json")
 	if err != nil {
 		return err
 	}
 
-	for _, line := range strings.Split(string(bucketsJson), "\n") {
-		line = strings.TrimSpace(line)
-
-		if line == "{" || line == "}" || line == "" {
-			continue
-		}
-
-		parts := strings.SplitN(line, ": ", 2)
-		if len(parts) != 2 {
-			continue
-		}
-
-		name := strings.Trim(parts[0], `"`)
-		url := strings.Trim(parts[1], `",`)
-
-		fmt.Print("\033[1;35m", name, "\033[0m: ", url, "\n")
+	for _, bucket := range knownBuckets {
+		fmt.Print("\033[1;35m", bucket.Name, "\033[0m: ", bucket.URL, "\n")
 	}
 
 	return nil
