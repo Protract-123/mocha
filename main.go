@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/Protract-123/mocha/bucket"
+	"github.com/Protract-123/mocha/cat"
 	"github.com/alexflint/go-arg"
 )
 
@@ -13,6 +14,7 @@ var args struct {
 	MochaDir string `arg:"--,env:MOCHA_DIR" default:"$USERPROFILE/mocha"`
 
 	Bucket *bucket.Cmd `arg:"subcommand:bucket"`
+	Cat    *cat.Cmd    `arg:"subcommand:cat"`
 }
 
 func main() {
@@ -25,6 +27,12 @@ func main() {
 
 	if args.Bucket != nil {
 		err := args.Bucket.Run(mochaDir)
+		if err != nil {
+			println(err.Error())
+		}
+	}
+	if args.Cat != nil {
+		err := args.Cat.Run(mochaDir)
 		if err != nil {
 			println(err.Error())
 		}
