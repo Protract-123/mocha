@@ -5,16 +5,22 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Protract-123/mocha/bucket"
-	"github.com/Protract-123/mocha/cat"
+	"github.com/BurntSushi/toml"
+	"github.com/Protract-123/mocha/commands"
+	"github.com/Protract-123/mocha/config"
 	"github.com/alexflint/go-arg"
 )
 
 var args struct {
 	MochaDir string `arg:"--,env:MOCHA_DIR" default:"$USERPROFILE/mocha"`
 
-	Bucket *bucket.Cmd `arg:"subcommand:bucket"`
-	Cat    *cat.Cmd    `arg:"subcommand:cat"`
+	Bucket *commands.BucketCommand `arg:"subcommand:bucket"`
+	Cat    *commands.CatCommand    `arg:"subcommand:cat"`
+	Config *commands.ConfigCommand `arg:"subcommand:config"`
+}
+
+type Config struct {
+	CatConfig commands.CatConfig `toml:"cat"`
 }
 
 func main() {
@@ -25,6 +31,18 @@ func main() {
 		log.Fatalf("failed to resolve mocha dir: %v", err)
 	}
 
+	configPath, err := config.GetConfigPath(mochaDir)
+	if err != nil {
+		log.Fatalf("failed to get config path: %v", err)
+	}
+
+	appConfig := &Config{}
+
+	_, err = toml.DecodeFile(configPath, appConfig)
+	if err != nil {
+		return
+	}
+
 	if args.Bucket != nil {
 		err := args.Bucket.Run(mochaDir)
 		if err != nil {
@@ -32,7 +50,13 @@ func main() {
 		}
 	}
 	if args.Cat != nil {
-		err := args.Cat.Run(mochaDir)
+		err := args.Cat.Run(mochaDir, appConfig.CatConfig)
+		if err != nil {
+			println(err.Error())
+		}
+	}
+	if args.Config != nil {
+		err := args.Config.Run(mochaDir)
 		if err != nil {
 			println(err.Error())
 		}
