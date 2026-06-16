@@ -9,43 +9,39 @@ import (
 	"time"
 )
 
-type knownCmd struct{}
+const knownBucketsSourceFile = "https://raw.githubusercontent.com/ScoopInstaller/Scoop/refs/heads/master/buckets.json"
 
-const scoopBucketsJsonSource = "https://raw.githubusercontent.com/ScoopInstaller/Scoop/refs/heads/master/buckets.json"
-
-func (cmd *knownCmd) Run(mochaDir string) error {
+func GetKnownBuckets(mochaDir string) ([]Bucket, error) {
 	knownBucketsPath := filepath.Join(mochaDir, "known_buckets.json")
 
 	if !filepath.IsAbs(knownBucketsPath) {
-		return fmt.Errorf("%s is not an absolute path", knownBucketsPath)
+		return nil, fmt.Errorf("%s is not an absolute path", knownBucketsPath)
 	}
 
 	_, err := os.Stat(knownBucketsPath)
 	if os.IsNotExist(err) {
-		err := updateKnownBuckets(mochaDir)
+		err := UpdateKnownBuckets(mochaDir)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	knownBuckets, err := parseBucketList(knownBucketsPath)
+	knownBuckets, err := ParseBucketList(knownBucketsPath)
 	if err != nil {
+		return nil, err
+	}
+
+	return knownBuckets, nil
+}
+
+func UpdateKnownBuckets(mochaDir string) error {
+	bucketsPath := filepath.Join(mochaDir, "known_buckets.json")
+
+	if err := os.MkdirAll(mochaDir, os.ModePerm); err != nil {
 		return err
 	}
 
-	for _, bucket := range knownBuckets {
-		fmt.Print("\033[1;35m", bucket.Name, "\033[0m: ", bucket.URL, "\n")
-	}
-
-	return nil
-}
-
-// TODO: move to update command
-
-func updateKnownBuckets(mochaDir string) error {
-	bucketsPath := filepath.Join(mochaDir, "known_buckets.json")
-
-	err := downloadFile(scoopBucketsJsonSource, bucketsPath)
+	err := downloadFile(knownBucketsSourceFile, bucketsPath)
 	if err != nil {
 		return err
 	}
