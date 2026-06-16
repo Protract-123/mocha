@@ -2,11 +2,10 @@ package bucket
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
-	"time"
+
+	"github.com/Protract-123/mocha/fileops"
 )
 
 const knownBucketsSourceFile = "https://raw.githubusercontent.com/ScoopInstaller/Scoop/refs/heads/master/buckets.json"
@@ -41,49 +40,7 @@ func UpdateKnownBuckets(mochaDir string) error {
 		return err
 	}
 
-	err := downloadFile(knownBucketsSourceFile, bucketsPath)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Taken from https://gist.github.com/cnu/026744b1e86c6d9e22313d06cba4c2e9
-
-func downloadFile(url string, filepath string) error {
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer func(out *os.File) {
-		err := out.Close()
-		if err != nil {
-			println(err)
-		}
-	}(out)
-
-	client := &http.Client{Timeout: 30 * time.Second}
-
-	// Get the data
-	resp, err := client.Get(url)
-	if err != nil {
-		return err
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			println(err)
-		}
-	}(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
-
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
+	err := fileops.DownloadFile(knownBucketsSourceFile, bucketsPath)
 	if err != nil {
 		return err
 	}
