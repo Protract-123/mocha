@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
-	"github.com/Protract-123/mocha/bucket"
-	"github.com/Protract-123/mocha/manifest"
+	"github.com/Protract-123/mocha/app"
 )
 
 type CatCommand struct {
@@ -26,7 +24,24 @@ func (cmd CatCommand) Run(mochaDir string, config CatConfig) error {
 		return errors.New("at least one app reference is required")
 	}
 
-	writeManifestData := func(path string) error {
+	for _, entry := range cmd.AppReferences {
+		appRef, err := app.ParseAppString(entry)
+		if err != nil {
+			return err
+		}
+
+		appRef, err = app.PopulateAppRef(appRef, mochaDir)
+		if err != nil {
+			return err
+		}
+
+		path, err := app.GetManifestPath(appRef.Bucket, appRef.Name, mochaDir)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("app %s not found in bucket %s", appRef.Name, appRef.Bucket)
+		} else if err != nil {
+			return err
+		}
+
 		if config.Command == "" {
 			data, err := os.ReadFile(path)
 			if err != nil {
@@ -38,7 +53,7 @@ func (cmd CatCommand) Run(mochaDir string, config CatConfig) error {
 				return err
 			}
 
-			return nil
+			continue
 		}
 
 		if !strings.Contains(config.Command, "[path]") {
@@ -51,65 +66,11 @@ func (cmd CatCommand) Run(mochaDir string, config CatConfig) error {
 		command.Stdin = os.Stdin
 		command.Stdout = os.Stdout
 		command.Stderr = os.Stderr
-		return command.Run()
-	}
+		err = command.Run()
 
-	bucketsDir := filepath.Join(mochaDir, "buckets")
-	buckets, err := os.ReadDir(bucketsDir)
-	if err != nil {
-		return err
-	}
-
-	for _, entry := range cmd.AppReferences {
-		appRef, err := bucket.ParseAppString(entry)
 		if err != nil {
 			return err
 		}
-
-		if appRef.Bucket != "" {
-			path, err := manifest.GetManifestPath(appRef.Bucket, appRef.Name, mochaDir)
-			if os.IsNotExist(err) {
-				return fmt.Errorf("app %s not found in bucket %s", appRef.Name, appRef.Bucket)
-			} else if err != nil {
-				return err
-			}
-
-			err = writeManifestData(path)
-			if err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		found := false
-
-		for _, dirEntry := range buckets {
-			if !dirEntry.IsDir() {
-				continue
-			}
-
-			path, err := manifest.GetManifestPath(dirEntry.Name(), appRef.Name, mochaDir)
-			if os.IsNotExist(err) {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			err = writeManifestData(path)
-			if err != nil {
-				return err
-			}
-
-			found = true
-			break
-		}
-
-		if found {
-			continue
-		}
-
-		return fmt.Errorf("app %s not found in buckets", appRef.Name)
 	}
 
 	return nil
