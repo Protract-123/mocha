@@ -9,10 +9,10 @@ import (
 )
 
 type Metadata struct {
-	Name          string `toml:"name"`
-	Source        string `toml:"source"`
-	LastUpdated   string `toml:"lastupdated"`
-	ManifestCount int    `toml:"manifest_count"`
+	Name          string
+	Source        string
+	LastUpdated   string
+	ManifestCount int
 }
 
 func GetAllBucketMetadata(mochaDir string) ([]Metadata, error) {

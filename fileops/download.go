@@ -5,14 +5,20 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
 // Taken from https://gist.github.com/cnu/026744b1e86c6d9e22313d06cba4c2e9
 
-func DownloadFile(url string, filepath string) error {
+func DownloadFile(url string, downloadPath string) error {
+	err := os.MkdirAll(filepath.Dir(downloadPath), os.ModePerm)
+	if err != nil {
+		return err
+	}
+
 	// Create the file
-	out, err := os.Create(filepath)
+	out, err := os.Create(downloadPath)
 	if err != nil {
 		return err
 	}
