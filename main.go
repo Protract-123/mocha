@@ -18,6 +18,7 @@ var args struct {
 	Cat      *commands.CatCommand      `arg:"subcommand:cat"`
 	Config   *commands.ConfigCommand   `arg:"subcommand:config"`
 	Download *commands.DownloadCommand `arg:"subcommand:download"`
+	Search   *commands.SearchCommand   `arg:"subcommand:search"`
 }
 
 type Config struct {
@@ -64,6 +65,12 @@ func main() {
 	}
 	if args.Download != nil {
 		err := args.Download.Run(mochaDir)
+		if err != nil {
+			println(err.Error())
+		}
+	}
+	if args.Search != nil {
+		err := args.Search.Run(mochaDir)
 		if err != nil {
 			println(err.Error())
 		}
