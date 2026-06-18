@@ -3,11 +3,11 @@ package commands
 import (
 	"fmt"
 	"net/url"
-	"os"
 	"os/exec"
-	"text/tabwriter"
+	"strconv"
 
 	"github.com/Protract-123/mocha/bucket"
+	"github.com/Protract-123/mocha/output"
 )
 
 type BucketCommand struct {
@@ -50,36 +50,19 @@ func (cmd *listBucketsCommand) Run(mochaDir string) error {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+	headers := []string{"Name", "Source", "Updated", "Manifests"}
+	rows := make([][]string, len(bucketMetadata))
 
-	_, err = fmt.Fprintln(w, "Name\tSource\tUpdated\tManifests")
-	if err != nil {
-		return err
-	}
-
-	_, err = fmt.Fprintln(w, "----\t------\t-------\t---------")
-	if err != nil {
-		return err
-	}
-
-	for _, entry := range bucketMetadata {
-		_, err = fmt.Fprintf(w, "%s\t%s\t%s\t%d\n",
+	for index, entry := range bucketMetadata {
+		rows[index] = []string{
 			entry.Name,
 			entry.Source,
 			entry.LastUpdated,
-			entry.ManifestCount,
-		)
-		if err != nil {
-			return err
+			strconv.Itoa(entry.ManifestCount),
 		}
 	}
 
-	err = w.Flush()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return output.PrintTable(headers, rows)
 }
 
 func (cmd *knownBucketsCommand) Run(mochaDir string) error {
@@ -100,39 +83,26 @@ func (cmd *removeBucketCommand) Run(mochaDir string) error {
 }
 
 func (cmd *addBucketCommand) Run(mochaDir string) error {
-	knownBuckets, err := bucket.GetKnownBuckets(mochaDir)
-	if err != nil {
-		return err
-	}
-
-	identifiedBucket, ok := findBucket(knownBuckets, cmd.Name)
-
-	if !ok && cmd.RepositoryURL.String() == "" {
-		return fmt.Errorf("bucket %s is not known, please provide URL", cmd.Name)
-	} else if !ok && IsValidURL(cmd.RepositoryURL) {
-		identifiedBucket = bucket.Bucket{
-			Name:   cmd.Name,
-			Source: cmd.RepositoryURL.String(),
-		}
-	} else if !ok {
-		return fmt.Errorf("please provide valid URL for bucket %s", cmd.Name)
-	}
-
-	_, err = exec.LookPath("git")
+	_, err := exec.LookPath("git")
 	if err != nil {
 		return fmt.Errorf("git was not found in PATH, please install git by running `mocha install git`")
 	}
 
-	return bucket.DownloadBucket(identifiedBucket, mochaDir)
-}
-
-func findBucket(buckets []bucket.Bucket, name string) (bucket.Bucket, bool) {
-	for _, entry := range buckets {
-		if entry.Name == name {
-			return entry, true
-		}
+	identifiedBucket, err := bucket.GetKnownBucket(cmd.Name, mochaDir)
+	if err != nil {
+		return bucket.DownloadBucket(identifiedBucket, mochaDir)
 	}
-	return bucket.Bucket{}, false
+
+	if cmd.RepositoryURL.String() == "" || !IsValidURL(cmd.RepositoryURL) {
+		return fmt.Errorf("bucket %s is not known, please provide a valid URL", cmd.Name)
+	}
+
+	identifiedBucket = bucket.Bucket{
+		Name:   cmd.Name,
+		Source: cmd.RepositoryURL.String(),
+	}
+
+	return bucket.DownloadBucket(identifiedBucket, mochaDir)
 }
 
 func IsValidURL(url url.URL) bool {

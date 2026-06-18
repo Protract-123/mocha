@@ -10,6 +10,20 @@ import (
 
 const knownBucketsSourceFile = "https://raw.githubusercontent.com/ScoopInstaller/Scoop/refs/heads/master/buckets.json"
 
+func GetKnownBucket(name string, mochaDir string) (Bucket, error) {
+	knownBuckets, err := GetKnownBuckets(mochaDir)
+	if err != nil {
+		return Bucket{}, err
+	}
+
+	for _, entry := range knownBuckets {
+		if entry.Name == name {
+			return entry, nil
+		}
+	}
+	return Bucket{}, fmt.Errorf("bucket %s not found", name)
+}
+
 func GetKnownBuckets(mochaDir string) ([]Bucket, error) {
 	knownBucketsPath := filepath.Join(mochaDir, "known_buckets.json")
 
