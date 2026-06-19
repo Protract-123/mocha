@@ -15,6 +15,7 @@ var args struct {
 	MochaDir string `arg:"--,env:MOCHA_DIR" default:"$USERPROFILE/mocha"`
 
 	Bucket   *commands.BucketCommand   `arg:"subcommand:bucket"`
+	Cache    *commands.CacheCommand    `arg:"subcommand:cache"`
 	Cat      *commands.CatCommand      `arg:"subcommand:cat"`
 	Config   *commands.ConfigCommand   `arg:"subcommand:config"`
 	Download *commands.DownloadCommand `arg:"subcommand:download"`
@@ -47,6 +48,12 @@ func main() {
 
 	if args.Bucket != nil {
 		err := args.Bucket.Run(mochaDir)
+		if err != nil {
+			println(err.Error())
+		}
+	}
+	if args.Cache != nil {
+		err := args.Cache.Run(mochaDir)
 		if err != nil {
 			println(err.Error())
 		}

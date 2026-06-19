@@ -89,7 +89,7 @@ func (cmd *addBucketCommand) Run(mochaDir string) error {
 	}
 
 	identifiedBucket, err := bucket.GetKnownBucket(cmd.Name, mochaDir)
-	if err != nil {
+	if err == nil {
 		return bucket.DownloadBucket(identifiedBucket, mochaDir)
 	}
 
