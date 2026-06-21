@@ -1,6 +1,7 @@
 package shim
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +18,7 @@ func CreateShim(name string, path string, mochaDir string) error {
 	if fileExtension == ".exe" || fileExtension == ".com" {
 		err := CreateExeShim(name, path, mochaDir)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create exe shim: %w", err)
 		}
 	}
 
@@ -29,7 +30,7 @@ func DeleteShim(name string, mochaDir string) error {
 
 	files, err := os.ReadDir(shimsDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read shims directory: %w", err)
 	}
 
 	for _, file := range files {
@@ -43,7 +44,7 @@ func DeleteShim(name string, mochaDir string) error {
 		if fileName == name {
 			err := os.Remove(filepath.Join(shimsDir, file.Name()))
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to remove shim file %s: %w", file.Name(), err)
 			}
 		}
 	}
@@ -56,7 +57,7 @@ func GetAllShims(mochaDir string) ([]Info, error) {
 
 	files, err := os.ReadDir(shimsDir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read shims directory: %w", err)
 	}
 
 	var shims []Info
@@ -71,7 +72,7 @@ func GetAllShims(mochaDir string) ([]Info, error) {
 
 			data, err := os.ReadFile(path)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to read shim file %s: %w", file.Name(), err)
 			}
 
 			name := strings.TrimSuffix(file.Name(), ".shim")
