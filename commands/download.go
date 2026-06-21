@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"runtime"
 
 	"github.com/Protract-123/mocha/app"
 	"github.com/Protract-123/mocha/fileops"
@@ -37,7 +36,7 @@ func (cmd *DownloadCommand) Run(mochaDir string) error {
 			return err
 		}
 
-		downloadArch, err := GetSystemArch()
+		downloadArch, err := app.GetSystemArch()
 		if err != nil {
 			return err
 		}
@@ -70,19 +69,4 @@ func (cmd *DownloadCommand) Run(mochaDir string) error {
 	}
 
 	return nil
-}
-
-// TODO: move to separate module
-
-func GetSystemArch() (string, error) {
-	cpuArch := runtime.GOARCH
-
-	if cpuArch == "386" {
-		return "32bit", nil
-	} else if cpuArch == "amd64" {
-		return "64bit", nil
-	} else if cpuArch == "arm64" {
-		return "arm64", nil
-	}
-	return "", fmt.Errorf("unsupported architecture: %s", cpuArch)
 }

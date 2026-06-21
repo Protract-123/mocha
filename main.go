@@ -20,6 +20,7 @@ var args struct {
 	Config   *commands.ConfigCommand   `arg:"subcommand:config"`
 	Download *commands.DownloadCommand `arg:"subcommand:download"`
 	Search   *commands.SearchCommand   `arg:"subcommand:search"`
+	Shim     *commands.ShimCommand     `arg:"subcommand:shim"`
 }
 
 type Config struct {
@@ -78,6 +79,12 @@ func main() {
 	}
 	if args.Search != nil {
 		err := args.Search.Run(mochaDir)
+		if err != nil {
+			println(err.Error())
+		}
+	}
+	if args.Shim != nil {
+		err := args.Shim.Run(mochaDir)
 		if err != nil {
 			println(err.Error())
 		}
