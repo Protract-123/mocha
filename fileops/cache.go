@@ -30,7 +30,7 @@ func GetCacheItems(mochaDir string) ([]CacheItem, error) {
 
 	cacheFiles, err := os.ReadDir(cacheDir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read cache directory: %w", err)
 	}
 
 	var cacheItems []CacheItem
@@ -47,7 +47,7 @@ func GetCacheItems(mochaDir string) ([]CacheItem, error) {
 
 		fileInfo, err := item.Info()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to read %s info: %w", item.Name(), err)
 		}
 
 		name := fileParts[0]

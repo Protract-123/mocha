@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 
@@ -31,25 +32,25 @@ type listShimCommand struct{}
 func (cmd *ShimCommand) Run(mochaDir string) error {
 	err := shim.InitShims(mochaDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to init shims: %w", err)
 	}
 
 	if cmd.Add != nil {
 		err := cmd.Add.Run(mochaDir)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to add shims: %w", err)
 		}
 	}
 	if cmd.Remove != nil {
 		err := cmd.Remove.Run(mochaDir)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to remove shims: %w", err)
 		}
 	}
 	if cmd.List != nil {
 		err := cmd.List.Run(mochaDir)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to list shims: %w", err)
 		}
 	}
 
@@ -63,33 +64,38 @@ func (cmd *addShimCommand) Run(mochaDir string) error {
 	if err == nil {
 		shimPath = cmd.Path
 	} else if !os.IsNotExist(err) {
-		return err
+		return fmt.Errorf("failed to confirm target's existence: %w", err)
 	}
 
 	if shimPath == "" {
 		resolved, err := exec.LookPath(cmd.Path)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to lookup target's path: %w", err)
 		}
 		shimPath = resolved
 	}
 
 	err = shim.CreateShim(cmd.Name, shimPath, mochaDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create shim: %w", err)
 	}
 
 	return nil
 }
 
 func (cmd *removeShimCommand) Run(mochaDir string) error {
-	return shim.DeleteShim(cmd.Name, mochaDir)
+	err := shim.DeleteShim(cmd.Name, mochaDir)
+	if err != nil {
+		return fmt.Errorf("failed to delete shim: %w", err)
+	}
+
+	return nil
 }
 
 func (cmd *listShimCommand) Run(mochaDir string) error {
 	shims, err := shim.GetAllShims(mochaDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get all shims: %w", err)
 	}
 
 	headers := []string{"Name", "Destination"}
@@ -104,7 +110,7 @@ func (cmd *listShimCommand) Run(mochaDir string) error {
 
 	err = output.PrintTable(headers, rows)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to print shim info table: %w", err)
 	}
 
 	return nil

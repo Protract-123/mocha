@@ -13,7 +13,16 @@ import (
 	"strings"
 )
 
-func VerifyHash(filePath string, hashRef string) (bool, error) {
+type HashMismatchError struct {
+	ExpectedHash string
+	ActualHash   string
+}
+
+func (e *HashMismatchError) Error() string {
+	return fmt.Sprintf("hash mismatch: expected %q got %q", e.ExpectedHash, e.ActualHash)
+}
+
+func VerifyHash(filePath string, hashRef string) error {
 	var hashType string
 	var checksum string
 
@@ -28,14 +37,9 @@ func VerifyHash(filePath string, hashRef string) (bool, error) {
 
 	fileHandle, err := os.Open(filePath)
 	if err != nil {
-		return false, err
+		return err
 	}
-	defer func(fileHandle *os.File) {
-		err := fileHandle.Close()
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-	}(fileHandle)
+	defer fileHandle.Close()
 
 	var hasher hash.Hash
 	switch hashType {
@@ -48,13 +52,20 @@ func VerifyHash(filePath string, hashRef string) (bool, error) {
 	case "md5":
 		hasher = md5.New()
 	default:
-		return false, fmt.Errorf("unknown hash type: %s", hashType)
+		return fmt.Errorf("unknown hash type: %s", hashType)
 	}
 
 	if _, err := io.Copy(hasher, fileHandle); err != nil {
-		return false, err
+		return err
 	}
 
 	fileHash := hex.EncodeToString(hasher.Sum(nil))
-	return fileHash == checksum, nil
+	if fileHash != checksum {
+		return &HashMismatchError{
+			ExpectedHash: checksum,
+			ActualHash:   fileHash,
+		}
+	}
+
+	return nil
 }

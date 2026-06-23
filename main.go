@@ -1,13 +1,15 @@
 package main
 
 import (
-	"log"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/Protract-123/mocha/commands"
 	"github.com/Protract-123/mocha/config"
+	"github.com/Protract-123/mocha/output"
 	"github.com/alexflint/go-arg"
 )
 
@@ -28,65 +30,62 @@ type Config struct {
 }
 
 func main() {
+	if err := run(); err != nil {
+		output.LogError(err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	arg.MustParse(&args)
 
-	mochaDir, err := filepath.Abs(os.ExpandEnv(args.MochaDir))
-	if err != nil {
-		log.Fatalf("failed to resolve mocha dir: %v", err)
+	mochaDir := os.ExpandEnv(args.MochaDir)
+	if !filepath.IsAbs(mochaDir) {
+		return fmt.Errorf("mocha dir %q is not an absolute path", mochaDir)
 	}
 
-	configPath, err := config.GetConfigPath(mochaDir)
-	if err != nil {
-		log.Fatalf("failed to get config path: %v", err)
+	if err := os.MkdirAll(mochaDir, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create mocha dir: %w", err)
 	}
 
+	appConfig, err := getConfig(mochaDir)
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case args.Bucket != nil:
+		return args.Bucket.Run(mochaDir)
+	case args.Cache != nil:
+		return args.Cache.Run(mochaDir)
+	case args.Cat != nil:
+		return args.Cat.Run(mochaDir, appConfig.CatConfig)
+	case args.Config != nil:
+		return args.Config.Run(mochaDir)
+	case args.Download != nil:
+		return args.Download.Run(mochaDir)
+	case args.Search != nil:
+		return args.Search.Run(mochaDir)
+	case args.Shim != nil:
+		return args.Shim.Run(mochaDir)
+	}
+	return nil
+}
+
+func getConfig(mochaDir string) (*Config, error) {
 	appConfig := &Config{}
 
-	_, err = toml.DecodeFile(configPath, appConfig)
-	if err != nil {
-		return
+	configPath, err := config.GetConfigPath(mochaDir)
+	if errors.Is(err, config.ConfigNotFound) {
+		output.LogWarning(fmt.Sprintf("failed to find mocha.toml, using defaults"))
+		return appConfig, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to get config path: %w", err)
 	}
 
-	if args.Bucket != nil {
-		err := args.Bucket.Run(mochaDir)
-		if err != nil {
-			println(err.Error())
-		}
+	if _, err = toml.DecodeFile(configPath, appConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
-	if args.Cache != nil {
-		err := args.Cache.Run(mochaDir)
-		if err != nil {
-			println(err.Error())
-		}
-	}
-	if args.Cat != nil {
-		err := args.Cat.Run(mochaDir, appConfig.CatConfig)
-		if err != nil {
-			println(err.Error())
-		}
-	}
-	if args.Config != nil {
-		err := args.Config.Run(mochaDir)
-		if err != nil {
-			println(err.Error())
-		}
-	}
-	if args.Download != nil {
-		err := args.Download.Run(mochaDir)
-		if err != nil {
-			println(err.Error())
-		}
-	}
-	if args.Search != nil {
-		err := args.Search.Run(mochaDir)
-		if err != nil {
-			println(err.Error())
-		}
-	}
-	if args.Shim != nil {
-		err := args.Shim.Run(mochaDir)
-		if err != nil {
-			println(err.Error())
-		}
-	}
+
+	return appConfig, nil
 }

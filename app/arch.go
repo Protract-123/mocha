@@ -15,5 +15,6 @@ func GetSystemArch() (string, error) {
 	} else if cpuArch == "arm64" {
 		return "arm64", nil
 	}
-	return "", fmt.Errorf("unsupported architecture: %s", cpuArch)
+
+	return "", fmt.Errorf("cpu architecture %q is unsupported", cpuArch)
 }

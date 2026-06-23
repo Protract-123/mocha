@@ -47,7 +47,7 @@ func (cmd *BucketCommand) Run(mochaDir string) error {
 func (cmd *listBucketsCommand) Run(mochaDir string) error {
 	bucketMetadata, err := bucket.GetAllBucketMetadata(mochaDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get bucket metadata: %w", err)
 	}
 
 	headers := []string{"Name", "Source", "Updated", "Manifests"}
@@ -62,47 +62,64 @@ func (cmd *listBucketsCommand) Run(mochaDir string) error {
 		}
 	}
 
-	return output.PrintTable(headers, rows)
+	err = output.PrintTable(headers, rows)
+	if err != nil {
+		return fmt.Errorf("failed to display bucket metadata: %w", err)
+	}
+
+	return nil
 }
 
 func (cmd *knownBucketsCommand) Run(mochaDir string) error {
 	knownBuckets, err := bucket.GetKnownBuckets(mochaDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get known buckets: %w", err)
 	}
 
 	for _, entry := range knownBuckets {
-		fmt.Print("\033[1;35m", entry.Name, "\033[0m: ", entry.Source, "\n")
+		fmt.Print(output.AnsiBoldMagenta, entry.Name, output.AnsiReset, ": ", entry.Source, "\n")
 	}
 
 	return nil
 }
 
 func (cmd *removeBucketCommand) Run(mochaDir string) error {
-	return bucket.DeleteBucket(cmd.Name, mochaDir)
+	err := bucket.DeleteBucket(cmd.Name, mochaDir)
+	if err != nil {
+		return fmt.Errorf("failed to delete bucket %q: %w", cmd.Name, err)
+	}
+
+	return nil
 }
 
 func (cmd *addBucketCommand) Run(mochaDir string) error {
+	if cmd.Name == "" {
+		return fmt.Errorf("no bucket name specified")
+	}
+
 	_, err := exec.LookPath("git")
 	if err != nil {
-		return fmt.Errorf("git was not found in PATH, please install git by running `mocha install git`")
+		return fmt.Errorf("git is required to add buckets, please install git by running `mocha install git`")
 	}
 
 	identifiedBucket, err := bucket.GetKnownBucket(cmd.Name, mochaDir)
-	if err == nil {
-		return bucket.DownloadBucket(identifiedBucket, mochaDir)
+	if err != nil {
+		if cmd.RepositoryURL.String() == "" || !IsValidURL(cmd.RepositoryURL) {
+			return fmt.Errorf("bucket %s is not known, please provide a valid URL", cmd.Name)
+		}
+
+		identifiedBucket = bucket.Bucket{
+			Name:   cmd.Name,
+			Source: cmd.RepositoryURL.String(),
+		}
 	}
 
-	if cmd.RepositoryURL.String() == "" || !IsValidURL(cmd.RepositoryURL) {
-		return fmt.Errorf("bucket %s is not known, please provide a valid URL", cmd.Name)
+	err = bucket.DownloadBucket(identifiedBucket, mochaDir)
+	if err != nil {
+		return fmt.Errorf("failed to download bucket %q: %w", identifiedBucket.Name, err)
 	}
 
-	identifiedBucket = bucket.Bucket{
-		Name:   cmd.Name,
-		Source: cmd.RepositoryURL.String(),
-	}
-
-	return bucket.DownloadBucket(identifiedBucket, mochaDir)
+	return nil
 }
 
 func IsValidURL(url url.URL) bool {

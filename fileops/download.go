@@ -17,40 +17,32 @@ func DownloadFile(url string, downloadPath string) error {
 		return err
 	}
 
-	// Create the file
 	out, err := os.Create(downloadPath)
 	if err != nil {
 		return err
 	}
-	defer func(out *os.File) {
-		err := out.Close()
-		if err != nil {
-			println(err)
-		}
-	}(out)
+	defer out.Close()
 
 	client := &http.Client{Timeout: 30 * time.Second}
 
-	// Get the data
 	resp, err := client.Get(url)
 	if err != nil {
 		return err
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			println(err)
-		}
-	}(resp.Body)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
+		return fmt.Errorf("bad HTTP status %q", resp.Status)
 	}
 
-	// Write the body to file
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+
+	err = out.Sync()
+	if err != nil {
+		return fmt.Errorf("failed to sync downloaded file: %w", err)
 	}
 
 	return nil

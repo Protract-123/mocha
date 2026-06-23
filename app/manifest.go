@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 )
 
 type DownloadEntry struct {
@@ -12,26 +11,10 @@ type DownloadEntry struct {
 	Hash string
 }
 
-func GetManifestPath(bucketName string, manifestName string, mochaDir string) (string, error) {
-	manifestPath := filepath.Join(mochaDir, "buckets", bucketName, "bucket", fmt.Sprintf("%s.json", manifestName))
-
-	_, err := os.Stat(manifestPath)
-	if err != nil {
-		return "", err
-	}
-
-	return manifestPath, nil
-}
-
 func GetManifestDownloads(manifestPath string, architecture string) ([]DownloadEntry, error) {
-	rawData, err := os.ReadFile(manifestPath)
+	jsonData, err := getManifestJson(manifestPath)
 	if err != nil {
-		return nil, err
-	}
-
-	var jsonData map[string]any
-	if err := json.Unmarshal(rawData, &jsonData); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get manifest json: %w", err)
 	}
 
 	var urls, hashes []string
@@ -67,21 +50,31 @@ func GetManifestDownloads(manifestPath string, architecture string) ([]DownloadE
 }
 
 func GetManifestVersion(manifestPath string) (string, error) {
+	jsonData, err := getManifestJson(manifestPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to get manifest json: %w", err)
+	}
+
+	version, ok := jsonData["version"].(string)
+	if !ok {
+		return "", fmt.Errorf("unable to find app version for %s", manifestPath)
+	}
+
+	return version, nil
+}
+
+func getManifestJson(manifestPath string) (map[string]any, error) {
 	rawData, err := os.ReadFile(manifestPath)
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("failed to read manifest %q", manifestPath)
 	}
 
 	var jsonData map[string]any
 	if err := json.Unmarshal(rawData, &jsonData); err != nil {
-		return "", err
+		return nil, fmt.Errorf("failed to parse manifest %q", manifestPath)
 	}
 
-	if version, ok := jsonData["version"].(string); ok {
-		return version, nil
-	}
-
-	return "", fmt.Errorf("unable to find app version for %s", manifestPath)
+	return jsonData, nil
 }
 
 func extractStringOrArray(v any) []string {

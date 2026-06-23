@@ -21,10 +21,16 @@ type clearCacheCommand struct {
 
 func (cmd CacheCommand) Run(mochaDir string) error {
 	if cmd.List != nil {
-		return cmd.List.Run(mochaDir)
+		err := cmd.List.Run(mochaDir)
+		if err != nil {
+			return fmt.Errorf("failed to list cache items: %w", err)
+		}
 	}
 	if cmd.Clear != nil {
-		return cmd.Clear.Run(mochaDir)
+		err := cmd.Clear.Run(mochaDir)
+		if err != nil {
+			return fmt.Errorf("failed to clear cache: %w", err)
+		}
 	}
 
 	return nil
@@ -33,7 +39,7 @@ func (cmd CacheCommand) Run(mochaDir string) error {
 func (cmd listCacheCommand) Run(mochaDir string) error {
 	rawCacheItems, err := fileops.GetCacheItems(mochaDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get cache items: %w", err)
 	}
 
 	type cacheItemKey struct{ name, version string }
@@ -68,7 +74,7 @@ func (cmd listCacheCommand) Run(mochaDir string) error {
 
 	err = output.PrintTable(headers, rows)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to display cache items: %w", err)
 	}
 
 	fmt.Printf("\nTotal Size: %s\n", ConvertToHumanReadable(totalBytes))
@@ -95,14 +101,14 @@ func ConvertToHumanReadable(bytes int64) string {
 func (cmd clearCacheCommand) Run(mochaDir string) error {
 	cacheItems, err := fileops.GetCacheItems(mochaDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get cache items: %w", err)
 	}
 
 	if len(cmd.Apps) == 0 {
 		for _, cacheItem := range cacheItems {
 			err := os.Remove(cacheItem.Path)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to remove cache item %q: %w", cacheItem.Path, err)
 			}
 		}
 
@@ -112,7 +118,7 @@ func (cmd clearCacheCommand) Run(mochaDir string) error {
 	for _, appString := range cmd.Apps {
 		appRef, err := app.ParseAppString(appString)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to parse app ref %q: %w", appString, err)
 		}
 
 		for _, cacheItem := range cacheItems {
@@ -126,7 +132,7 @@ func (cmd clearCacheCommand) Run(mochaDir string) error {
 
 			err := os.Remove(cacheItem.Path)
 			if err != nil && !os.IsNotExist(err) {
-				return err
+				return fmt.Errorf("failed to remove cache item %q: %w", cacheItem.Path, err)
 			}
 		}
 	}

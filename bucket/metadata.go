@@ -1,6 +1,7 @@
 package bucket
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,7 +21,7 @@ func GetAllBucketMetadata(mochaDir string) ([]Metadata, error) {
 
 	buckets, err := os.ReadDir(bucketsDir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get all buckets: %w", err)
 	}
 
 	var bucketMetadata []Metadata
@@ -32,7 +33,7 @@ func GetAllBucketMetadata(mochaDir string) ([]Metadata, error) {
 
 		metadata, err := GetBucketMetadata(mochaDir, entry.Name())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get metadata for bucket %q: %w", entry.Name(), err)
 		}
 
 		bucketMetadata = append(bucketMetadata, metadata)
@@ -48,7 +49,7 @@ func GetBucketMetadata(mochaDir string, bucketName string) (Metadata, error) {
 	sourceCmd.Dir = bucketPath
 	sourceOut, err := sourceCmd.Output()
 	if err != nil {
-		return Metadata{}, err
+		return Metadata{}, fmt.Errorf("failed to get bucket source: %w", err)
 	}
 	bucketSource := strings.TrimSpace(string(sourceOut))
 
@@ -56,17 +57,17 @@ func GetBucketMetadata(mochaDir string, bucketName string) (Metadata, error) {
 	updatedCmd.Dir = bucketPath
 	updatedOut, err := updatedCmd.Output()
 	if err != nil {
-		return Metadata{}, err
+		return Metadata{}, fmt.Errorf("failed to get last update date: %w", err)
 	}
 
 	bucketLastUpdated, err := time.Parse("Mon, 2 Jan 2006 15:04:05 -0700", strings.TrimSpace(string(updatedOut)))
 	if err != nil {
-		return Metadata{}, err
+		return Metadata{}, fmt.Errorf("failed to parse last update date: %w", err)
 	}
 
 	manifests, err := os.ReadDir(filepath.Join(bucketPath, "bucket"))
 	if err != nil {
-		return Metadata{}, err
+		return Metadata{}, fmt.Errorf("failed to get manifest count: %w", err)
 	}
 	manifestCount := len(manifests)
 

@@ -22,7 +22,7 @@ func (cmd *SearchCommand) Run(mochaDir string) error {
 
 	buckets, err := os.ReadDir(bucketsDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read buckets directory: %w", err)
 	}
 
 	var allManifestNames []string
@@ -36,7 +36,7 @@ func (cmd *SearchCommand) Run(mochaDir string) error {
 		manifestDir := filepath.Join(bucketsDir, bucket.Name(), "bucket")
 		manifests, err := os.ReadDir(manifestDir)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to read %s's manifest directory: %w", bucket.Name(), err)
 		}
 
 		for _, manifest := range manifests {
@@ -54,7 +54,7 @@ func (cmd *SearchCommand) Run(mochaDir string) error {
 	fuzzyResults := fuzzy.Find(cmd.Query, allManifestNames)
 
 	if len(fuzzyResults) == 0 && len(exactMatches) == 0 {
-		return fmt.Errorf("no results found")
+		return fmt.Errorf("no results found in buckets")
 	}
 
 	limit := len(fuzzyResults)
@@ -68,12 +68,12 @@ func (cmd *SearchCommand) Run(mochaDir string) error {
 		for _, result := range exactMatches {
 			appDetails, err := app.ParseAppString(result)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to parse result %s: %w", result, err)
 			}
 
 			appDetails, err = app.PopulateAppRef(appDetails, mochaDir)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get %s manifest details: %w", result, err)
 			}
 
 			fmt.Printf("%s - %s - %s\n", appDetails.Name, appDetails.Bucket, appDetails.Version)
@@ -88,12 +88,12 @@ func (cmd *SearchCommand) Run(mochaDir string) error {
 	for index, result := range fuzzyResults[:limit] {
 		appDetails, err := app.ParseAppString(result.Str)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to parse result %s: %w", result.Str, err)
 		}
 
 		appDetails, err = app.PopulateAppRef(appDetails, mochaDir)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get %s manifest details: %w", result.Str, err)
 		}
 
 		rows[index] = []string{appDetails.Name, appDetails.Bucket, appDetails.Version}

@@ -8,14 +8,24 @@ import (
 )
 
 type Ref struct {
-	Bucket  string
-	Name    string
-	Version string
+	Name         string
+	Bucket       string
+	Version      string
+	ManifestPath string
+}
+
+type BadAppRefError struct {
+	providedAppRef string
+	expectedFormat string
+}
+
+func (error BadAppRefError) Error() string {
+	return fmt.Sprintf("invalid app reference %q, expected %q", error.providedAppRef, error.expectedFormat)
 }
 
 func ParseAppString(appString string) (Ref, error) {
 	if appString == "" {
-		return Ref{}, fmt.Errorf("app string is empty")
+		return Ref{}, BadAppRefError{appString, "[bucket/]app[@version]"}
 	}
 
 	appRef := Ref{}
@@ -34,11 +44,11 @@ func ParseAppString(appString string) (Ref, error) {
 	}
 
 	if appRef.Name == "" {
-		return Ref{}, fmt.Errorf("app name not parsed correctly")
+		return Ref{}, BadAppRefError{appString, "[bucket/]app[@version]"}
 	} else if appRef.Bucket == "" && strings.Contains(appString, "/") {
-		return Ref{}, fmt.Errorf("app bucket name not parsed correctly")
+		return Ref{}, BadAppRefError{appString, "bucket/app"}
 	} else if appRef.Version == "" && strings.Contains(appString, "@") {
-		return Ref{}, fmt.Errorf("app version not parsed correctly")
+		return Ref{}, BadAppRefError{appString, "app@version"}
 	}
 
 	return appRef, nil
@@ -46,14 +56,14 @@ func ParseAppString(appString string) (Ref, error) {
 
 func PopulateAppRef(appRef Ref, mochaDir string) (Ref, error) {
 	if appRef.Name == "" {
-		return appRef, fmt.Errorf("app name is required to populate the app ref")
+		return Ref{}, fmt.Errorf("app name is empty")
 	}
 
 	if appRef.Bucket == "" {
 		bucketsDir := filepath.Join(mochaDir, "buckets")
 		buckets, err := os.ReadDir(bucketsDir)
 		if err != nil {
-			return appRef, err
+			return Ref{}, fmt.Errorf("failed to get all buckets: %w", err)
 		}
 
 		for _, dirEntry := range buckets {
@@ -61,33 +71,37 @@ func PopulateAppRef(appRef Ref, mochaDir string) (Ref, error) {
 				continue
 			}
 
-			path, err := GetManifestPath(dirEntry.Name(), appRef.Name, mochaDir)
+			manifestPath := filepath.Join(mochaDir, "buckets", dirEntry.Name(), "bucket", fmt.Sprintf("%s.json", appRef.Name))
+			_, err := os.Stat(manifestPath)
+
 			if os.IsNotExist(err) {
 				continue
 			} else if err != nil {
-				return appRef, err
+				return appRef, fmt.Errorf("failed to confirm if manifest exists at %q: %w", manifestPath, err)
 			}
 
-			if path != "" {
-				appRef.Bucket = dirEntry.Name()
-				break
-			}
+			appRef.Bucket = dirEntry.Name()
+			break
 		}
 
 		if appRef.Bucket == "" {
-			return appRef, fmt.Errorf("could not find app %q in any bucket", appRef.Name)
+			return appRef, fmt.Errorf("failed to find app %q in buckets", appRef.Name)
 		}
 	}
 
-	if appRef.Version == "" {
-		manifestPath, err := GetManifestPath(appRef.Bucket, appRef.Name, mochaDir)
-		if err != nil {
-			return appRef, err
-		}
+	manifestPath := filepath.Join(mochaDir, "buckets", appRef.Bucket, "bucket", fmt.Sprintf("%s.json", appRef.Name))
+	_, err := os.Stat(manifestPath)
 
+	appRef.ManifestPath = manifestPath
+
+	if err != nil {
+		return Ref{}, fmt.Errorf("failed to find app %q in bucket %q: %w", appRef.Name, appRef.Bucket, err)
+	}
+
+	if appRef.Version == "" {
 		version, err := GetManifestVersion(manifestPath)
 		if err != nil {
-			return appRef, err
+			return appRef, fmt.Errorf("failed to get app version for %q in bucket %q: %w", appRef.Name, appRef.Bucket, err)
 		}
 
 		appRef.Version = version

@@ -33,6 +33,8 @@ func DeleteShim(name string, mochaDir string) error {
 		return fmt.Errorf("failed to read shims directory: %w", err)
 	}
 
+	noDeletion := true
+
 	for _, file := range files {
 		if file.IsDir() {
 			continue
@@ -46,7 +48,12 @@ func DeleteShim(name string, mochaDir string) error {
 			if err != nil {
 				return fmt.Errorf("failed to remove shim file %s: %w", file.Name(), err)
 			}
+			noDeletion = false
 		}
+	}
+
+	if noDeletion {
+		return fmt.Errorf("no shim found for %q", name)
 	}
 
 	return nil

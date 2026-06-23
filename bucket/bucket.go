@@ -17,7 +17,7 @@ func DownloadBucket(bucket Bucket, mochaDir string) error {
 	bucketsDir := filepath.Join(mochaDir, "buckets")
 
 	if err := os.MkdirAll(bucketsDir, os.ModePerm); err != nil {
-		return err
+		return fmt.Errorf("failed to make bucket directory: %w", err)
 	}
 
 	destDir := filepath.Join(bucketsDir, bucket.Name)
@@ -30,7 +30,12 @@ func DownloadBucket(bucket Bucket, mochaDir string) error {
 	cmd := exec.Command("git", "clone", bucket.Source, destDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to clone bucket: %w", err)
+	}
+	return nil
 }
 
 func DeleteBucket(name string, mochaDir string) error {
@@ -38,7 +43,7 @@ func DeleteBucket(name string, mochaDir string) error {
 
 	err := os.RemoveAll(bucketDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete bucket %q: %v", name, err)
 	}
 	return nil
 }
@@ -46,7 +51,7 @@ func DeleteBucket(name string, mochaDir string) error {
 func ParseBucketList(file string) ([]Bucket, error) {
 	bucketsJson, err := os.ReadFile(file)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read buckets list file: %q", err)
 	}
 
 	var buckets []Bucket

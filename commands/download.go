@@ -12,7 +12,7 @@ import (
 // TODO: add more/better logging, like a progress bar
 
 type DownloadCommand struct {
-	AppReferences []string `arg:"positional,required"`
+	AppReferences []string `arg:"positional"`
 }
 
 func (cmd *DownloadCommand) Run(mochaDir string) error {
@@ -23,17 +23,12 @@ func (cmd *DownloadCommand) Run(mochaDir string) error {
 	for _, appString := range cmd.AppReferences {
 		appRef, err := app.ParseAppString(appString)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to parse app ref %q: %w", appString, err)
 		}
 
 		appRef, err = app.PopulateAppRef(appRef, mochaDir)
 		if err != nil {
-			return err
-		}
-
-		manifestPath, err := app.GetManifestPath(appRef.Bucket, appRef.Name, mochaDir)
-		if err != nil {
-			return err
+			return fmt.Errorf("failed to get %q manifest details: %w", appString, err)
 		}
 
 		downloadArch, err := app.GetSystemArch()
@@ -41,7 +36,7 @@ func (cmd *DownloadCommand) Run(mochaDir string) error {
 			return err
 		}
 
-		downloadEntries, err := app.GetManifestDownloads(manifestPath, downloadArch)
+		downloadEntries, err := app.GetManifestDownloads(appRef.ManifestPath, downloadArch)
 		if err != nil {
 			return err
 		}
@@ -51,11 +46,11 @@ func (cmd *DownloadCommand) Run(mochaDir string) error {
 
 			err := fileops.DownloadFile(entry.URL, downloadPath)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to download %s: %w", entry.URL, err)
 			}
 
-			hashVerified, err := fileops.VerifyHash(downloadPath, entry.Hash)
-			if err != nil || !hashVerified {
+			err = fileops.VerifyHash(downloadPath, entry.Hash)
+			if err != nil {
 				err2 := os.Remove(downloadPath)
 				if err2 != nil {
 					return err2

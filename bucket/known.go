@@ -13,7 +13,7 @@ const knownBucketsSourceFile = "https://raw.githubusercontent.com/ScoopInstaller
 func GetKnownBucket(name string, mochaDir string) (Bucket, error) {
 	knownBuckets, err := GetKnownBuckets(mochaDir)
 	if err != nil {
-		return Bucket{}, err
+		return Bucket{}, fmt.Errorf("failed to get known buckets: %v", err)
 	}
 
 	for _, entry := range knownBuckets {
@@ -21,27 +21,23 @@ func GetKnownBucket(name string, mochaDir string) (Bucket, error) {
 			return entry, nil
 		}
 	}
-	return Bucket{}, fmt.Errorf("bucket %s not found", name)
+	return Bucket{}, fmt.Errorf("bucket %q is not a known bucket", name)
 }
 
 func GetKnownBuckets(mochaDir string) ([]Bucket, error) {
 	knownBucketsPath := filepath.Join(mochaDir, "known_buckets.json")
 
-	if !filepath.IsAbs(knownBucketsPath) {
-		return nil, fmt.Errorf("%s is not an absolute path", knownBucketsPath)
-	}
-
 	_, err := os.Stat(knownBucketsPath)
 	if os.IsNotExist(err) {
 		err := UpdateKnownBuckets(mochaDir)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to update known buckets: %w", err)
 		}
 	}
 
 	knownBuckets, err := ParseBucketList(knownBucketsPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse known buckets: %w", err)
 	}
 
 	return knownBuckets, nil
@@ -50,13 +46,9 @@ func GetKnownBuckets(mochaDir string) ([]Bucket, error) {
 func UpdateKnownBuckets(mochaDir string) error {
 	bucketsPath := filepath.Join(mochaDir, "known_buckets.json")
 
-	if err := os.MkdirAll(mochaDir, os.ModePerm); err != nil {
-		return err
-	}
-
 	err := fileops.DownloadFile(knownBucketsSourceFile, bucketsPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to download known buckets: %w", err)
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package config
 import (
 	_ "embed"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -32,7 +33,7 @@ func GetConfigPath(mochaDir string) (string, error) {
 		if os.IsNotExist(err) {
 			continue
 		} else if err != nil {
-			return "", err
+			return "", fmt.Errorf("failed to check if config exists: %w", err)
 		}
 
 		return configPath, nil
@@ -44,7 +45,7 @@ func GetConfigPath(mochaDir string) (string, error) {
 func WriteDefaultConfig(configPath string) error {
 	err := os.WriteFile(configPath, defaultConfig, 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write default config: %w", err)
 	}
 
 	return nil

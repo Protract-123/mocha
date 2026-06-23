@@ -3,6 +3,7 @@ package commands
 import (
 	_ "embed"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 
@@ -16,10 +17,10 @@ func (cmd ConfigCommand) Run(mochaDir string) error {
 	if errors.Is(err, config.ConfigNotFound) {
 		err := config.WriteDefaultConfig(configPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to write default config: %w", err)
 		}
 	} else if err != nil {
-		return err
+		return fmt.Errorf("failed to check if config file exists: %w", err)
 	}
 
 	editor := os.Getenv("EDITOR")
@@ -32,8 +33,14 @@ func (cmd ConfigCommand) Run(mochaDir string) error {
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		return cmd.Run()
+		err = cmd.Run()
+	} else {
+		err = exec.Command("cmd", "/c", "start", configPath).Run()
 	}
 
-	return exec.Command("cmd", "/c", "start", configPath).Run()
+	if err != nil {
+		return fmt.Errorf("failed to open config file in editor: %w", err)
+	}
+
+	return nil
 }
