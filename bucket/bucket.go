@@ -48,6 +48,43 @@ func DeleteBucket(name string, mochaDir string) error {
 	return nil
 }
 
+func UpdateAllBuckets(mochaDir string) error {
+	bucketDir := filepath.Join(mochaDir, "buckets")
+	buckets, err := os.ReadDir(bucketDir)
+	if err != nil {
+		return fmt.Errorf("failed to get all buckets: %v", err)
+	}
+
+	for _, entry := range buckets {
+		if !entry.IsDir() {
+			continue
+		}
+
+		err := UpdateBucket(entry.Name(), mochaDir)
+		if err != nil {
+			return fmt.Errorf("failed to update bucket %q: %w", entry.Name(), err)
+		}
+	}
+
+	return nil
+}
+
+func UpdateBucket(bucketName string, mochaDir string) error {
+	bucketPath := filepath.Join(mochaDir, "buckets", bucketName)
+
+	cmd := exec.Command("git", "pull")
+	cmd.Dir = bucketPath
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to run git pull: %w", err)
+	}
+
+	return nil
+}
+
 func ParseBucketList(file string) ([]Bucket, error) {
 	bucketsJson, err := os.ReadFile(file)
 	if err != nil {
