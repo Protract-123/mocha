@@ -49,6 +49,18 @@ func GetManifestDownloads(manifestPath string, architecture string) ([]DownloadE
 	return entries, nil
 }
 
+// TODO: handle more bin formats (e.g. array of arrays)
+
+func GetManifestBin(manifestPath string) ([]string, error) {
+	jsonData, err := getManifestJson(manifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get manifest json: %w", err)
+	}
+
+	bins := extractStringOrArray(jsonData["bin"])
+	return bins, nil
+}
+
 func GetManifestVersion(manifestPath string) (string, error) {
 	jsonData, err := getManifestJson(manifestPath)
 	if err != nil {

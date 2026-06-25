@@ -21,6 +21,7 @@ var args struct {
 	Cat      *commands.CatCommand      `arg:"subcommand:cat"`
 	Config   *commands.ConfigCommand   `arg:"subcommand:config"`
 	Download *commands.DownloadCommand `arg:"subcommand:download"`
+	Install  *commands.InstallCommand  `arg:"subcommand:install"`
 	Search   *commands.SearchCommand   `arg:"subcommand:search"`
 	Shim     *commands.ShimCommand     `arg:"subcommand:shim"`
 	Update   *commands.UpdateCommand   `arg:"subcommand:update"`
@@ -65,6 +66,8 @@ func run() error {
 		return args.Config.Run(mochaDir)
 	case args.Download != nil:
 		return args.Download.Run(mochaDir)
+	case args.Install != nil:
+		return args.Install.Run(mochaDir)
 	case args.Search != nil:
 		return args.Search.Run(mochaDir)
 	case args.Shim != nil:
