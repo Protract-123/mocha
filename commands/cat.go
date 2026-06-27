@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/manifest"
 )
 
@@ -14,12 +15,7 @@ type CatCommand struct {
 	ManifestReferences []string `arg:"positional,required"`
 }
 
-type CatConfig struct {
-	IncludeDeprecated bool   `toml:"include-deprecated"`
-	Command           string `toml:"command"`
-}
-
-func (cmd CatCommand) Run(mochaDir string, config CatConfig) error {
+func (cmd CatCommand) Run(mochaDir string, config config.CatConfig) error {
 	if cmd.ManifestReferences == nil {
 		return errors.New("at least one manifest reference is required")
 	}

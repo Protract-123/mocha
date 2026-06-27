@@ -1,12 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/BurntSushi/toml"
 	"github.com/Protract-123/mocha/commands"
 	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/output"
@@ -14,21 +12,17 @@ import (
 )
 
 var args struct {
-	MochaDir string `arg:"--,env:MOCHA_DIR" default:"$USERPROFILE/mocha"`
+	MochaDirectory string `arg:"--,env:MOCHA_DIR" default:"$USERPROFILE/mocha"`
 
-	Bucket   *commands.BucketCommand   `arg:"subcommand:bucket"`
-	Cache    *commands.CacheCommand    `arg:"subcommand:cache"`
-	Cat      *commands.CatCommand      `arg:"subcommand:cat"`
-	Config   *commands.ConfigCommand   `arg:"subcommand:config"`
-	Download *commands.DownloadCommand `arg:"subcommand:download"`
-	Install  *commands.InstallCommand  `arg:"subcommand:install"`
-	Search   *commands.SearchCommand   `arg:"subcommand:search"`
-	Shim     *commands.ShimCommand     `arg:"subcommand:shim"`
-	Update   *commands.UpdateCommand   `arg:"subcommand:update"`
-}
-
-type Config struct {
-	CatConfig commands.CatConfig `toml:"cat"`
+	BucketCommand   *commands.BucketCommand   `arg:"subcommand:bucket"`
+	CacheCommand    *commands.CacheCommand    `arg:"subcommand:cache"`
+	CatCommand      *commands.CatCommand      `arg:"subcommand:cat"`
+	ConfigCommand   *commands.ConfigCommand   `arg:"subcommand:config"`
+	DownloadCommand *commands.DownloadCommand `arg:"subcommand:download"`
+	InstallCommand  *commands.InstallCommand  `arg:"subcommand:install"`
+	SearchCommand   *commands.SearchCommand   `arg:"subcommand:search"`
+	ShimCommand     *commands.ShimCommand     `arg:"subcommand:shim"`
+	UpdateCommand   *commands.UpdateCommand   `arg:"subcommand:update"`
 }
 
 func main() {
@@ -41,57 +35,39 @@ func main() {
 func run() error {
 	arg.MustParse(&args)
 
-	mochaDir := os.ExpandEnv(args.MochaDir)
-	if !filepath.IsAbs(mochaDir) {
-		return fmt.Errorf("mocha dir %q is not an absolute path", mochaDir)
+	mochaDirectory := os.ExpandEnv(args.MochaDirectory)
+	if !filepath.IsAbs(mochaDirectory) {
+		return fmt.Errorf("mocha directory %q is not an absolute path", mochaDirectory)
 	}
 
-	if err := os.MkdirAll(mochaDir, os.ModePerm); err != nil {
-		return fmt.Errorf("failed to create mocha dir: %w", err)
+	if err := os.MkdirAll(mochaDirectory, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create mocha directory: %w", err)
 	}
 
-	appConfig, err := getConfig(mochaDir)
+	configuration, err := config.GetConfig(mochaDirectory)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
 	switch {
-	case args.Bucket != nil:
-		return args.Bucket.Run(mochaDir)
-	case args.Cache != nil:
-		return args.Cache.Run(mochaDir)
-	case args.Cat != nil:
-		return args.Cat.Run(mochaDir, appConfig.CatConfig)
-	case args.Config != nil:
-		return args.Config.Run(mochaDir)
-	case args.Download != nil:
-		return args.Download.Run(mochaDir)
-	case args.Install != nil:
-		return args.Install.Run(mochaDir)
-	case args.Search != nil:
-		return args.Search.Run(mochaDir)
-	case args.Shim != nil:
-		return args.Shim.Run(mochaDir)
-	case args.Update != nil:
-		return args.Update.Run(mochaDir)
+	case args.BucketCommand != nil:
+		return args.BucketCommand.Run(mochaDirectory)
+	case args.CacheCommand != nil:
+		return args.CacheCommand.Run(mochaDirectory)
+	case args.CatCommand != nil:
+		return args.CatCommand.Run(mochaDirectory, configuration.CatConfiguration)
+	case args.ConfigCommand != nil:
+		return args.ConfigCommand.Run(mochaDirectory)
+	case args.DownloadCommand != nil:
+		return args.DownloadCommand.Run(mochaDirectory)
+	case args.InstallCommand != nil:
+		return args.InstallCommand.Run(mochaDirectory)
+	case args.SearchCommand != nil:
+		return args.SearchCommand.Run(mochaDirectory)
+	case args.ShimCommand != nil:
+		return args.ShimCommand.Run(mochaDirectory)
+	case args.UpdateCommand != nil:
+		return args.UpdateCommand.Run(mochaDirectory)
 	}
 	return nil
-}
-
-func getConfig(mochaDir string) (*Config, error) {
-	appConfig := &Config{}
-
-	configPath, err := config.GetConfigPath(mochaDir)
-	if errors.Is(err, config.ConfigNotFound) {
-		output.LogWarning(fmt.Sprintf("failed to find mocha.toml, using defaults"))
-		return appConfig, nil
-	} else if err != nil {
-		return nil, fmt.Errorf("failed to get config path: %w", err)
-	}
-
-	if _, err = toml.DecodeFile(configPath, appConfig); err != nil {
-		return nil, fmt.Errorf("failed to parse config file: %w", err)
-	}
-
-	return appConfig, nil
 }
