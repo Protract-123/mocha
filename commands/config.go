@@ -14,7 +14,7 @@ type ConfigCommand struct{}
 
 func (cmd ConfigCommand) Run(mochaDir string) error {
 	configPath, err := config.GetConfigPath(mochaDir)
-	if errors.Is(err, config.ConfigNotFound) {
+	if errors.Is(err, config.ErrConfigNotFound) {
 		err := config.WriteDefaultConfig(configPath)
 		if err != nil {
 			return fmt.Errorf("failed to write default config: %w", err)

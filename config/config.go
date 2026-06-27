@@ -21,8 +21,8 @@ func GetConfig(mochaDir string) (*MochaConfiguration, error) {
 	appConfig := &MochaConfiguration{}
 
 	configPath, err := GetConfigPath(mochaDir)
-	if errors.Is(err, ConfigNotFound) {
-		output.LogWarning(fmt.Sprintf("failed to find mocha.toml, using defaults"))
+	if errors.Is(err, ErrConfigNotFound) {
+		output.LogWarning("failed to find mocha.toml, using defaults")
 		return appConfig, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to get config path: %w", err)
