@@ -1,4 +1,4 @@
-package app
+package manifest
 
 import (
 	"encoding/json"
@@ -69,7 +69,7 @@ func GetManifestVersion(manifestPath string) (string, error) {
 
 	version, ok := jsonData["version"].(string)
 	if !ok {
-		return "", fmt.Errorf("unable to find app version for %s", manifestPath)
+		return "", fmt.Errorf("unable to find manifest version for %s", manifestPath)
 	}
 
 	return version, nil

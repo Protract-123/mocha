@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Protract-123/mocha/app"
 	"github.com/Protract-123/mocha/fileops"
+	"github.com/Protract-123/mocha/manifest"
 	"github.com/Protract-123/mocha/output"
 )
 
@@ -16,7 +16,7 @@ type CacheCommand struct {
 
 type listCacheCommand struct{}
 type clearCacheCommand struct {
-	Apps []string `arg:"positional"`
+	ManifestReferences []string `arg:"positional"`
 }
 
 func (cmd CacheCommand) Run(mochaDir string) error {
@@ -104,7 +104,7 @@ func (cmd clearCacheCommand) Run(mochaDir string) error {
 		return fmt.Errorf("failed to get cache items: %w", err)
 	}
 
-	if len(cmd.Apps) == 0 {
+	if len(cmd.ManifestReferences) == 0 {
 		for _, cacheItem := range cacheItems {
 			err := os.Remove(cacheItem.Path)
 			if err != nil {
@@ -115,18 +115,18 @@ func (cmd clearCacheCommand) Run(mochaDir string) error {
 		return nil
 	}
 
-	for _, appString := range cmd.Apps {
-		appRef, err := app.ParseAppString(appString)
+	for _, refString := range cmd.ManifestReferences {
+		manifestRef, err := manifest.ParseRefString(refString)
 		if err != nil {
-			return fmt.Errorf("failed to parse app ref %q: %w", appString, err)
+			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
 		}
 
 		for _, cacheItem := range cacheItems {
-			if appRef.Name != cacheItem.Name && appRef.Name != "" {
+			if manifestRef.Name != cacheItem.Name && manifestRef.Name != "" {
 				continue
 			}
 
-			if appRef.Version != cacheItem.Version && appRef.Version != "" {
+			if manifestRef.Version != cacheItem.Version && manifestRef.Version != "" {
 				continue
 			}
 

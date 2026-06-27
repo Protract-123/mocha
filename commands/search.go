@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Protract-123/mocha/app"
+	"github.com/Protract-123/mocha/manifest"
 	"github.com/Protract-123/mocha/output"
 	"github.com/sahilm/fuzzy"
 )
@@ -39,8 +39,8 @@ func (cmd *SearchCommand) Run(mochaDir string) error {
 			return fmt.Errorf("failed to read %s's manifest directory: %w", bucket.Name(), err)
 		}
 
-		for _, manifest := range manifests {
-			appName := strings.TrimSuffix(manifest.Name(), filepath.Ext(manifest.Name()))
+		for _, entry := range manifests {
+			appName := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 
 			if appName == cmd.Query {
 				exactMatches = append(exactMatches, appName)
@@ -66,17 +66,17 @@ func (cmd *SearchCommand) Run(mochaDir string) error {
 		fmt.Println("\nExact Matches:")
 
 		for _, result := range exactMatches {
-			appDetails, err := app.ParseAppString(result)
+			manifestRef, err := manifest.ParseRefString(result)
 			if err != nil {
 				return fmt.Errorf("failed to parse result %s: %w", result, err)
 			}
 
-			appDetails, err = app.PopulateAppRef(appDetails, mochaDir)
+			manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
 			if err != nil {
 				return fmt.Errorf("failed to get %s manifest details: %w", result, err)
 			}
 
-			fmt.Printf("%s - %s - %s\n", appDetails.Name, appDetails.Bucket, appDetails.Version)
+			fmt.Printf("%s - %s - %s\n", manifestRef.Name, manifestRef.Bucket, manifestRef.Version)
 		}
 
 		fmt.Print("\n")
@@ -86,12 +86,12 @@ func (cmd *SearchCommand) Run(mochaDir string) error {
 	rows := make([][]string, limit)
 
 	for index, result := range fuzzyResults[:limit] {
-		appDetails, err := app.ParseAppString(result.Str)
+		appDetails, err := manifest.ParseRefString(result.Str)
 		if err != nil {
 			return fmt.Errorf("failed to parse result %s: %w", result.Str, err)
 		}
 
-		appDetails, err = app.PopulateAppRef(appDetails, mochaDir)
+		appDetails, err = manifest.PopulateRef(appDetails, mochaDir)
 		if err != nil {
 			return fmt.Errorf("failed to get %s manifest details: %w", result.Str, err)
 		}

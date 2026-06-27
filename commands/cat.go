@@ -7,11 +7,11 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/Protract-123/mocha/app"
+	"github.com/Protract-123/mocha/manifest"
 )
 
 type CatCommand struct {
-	AppReferences []string `arg:"positional,required"`
+	ManifestReferences []string `arg:"positional,required"`
 }
 
 type CatConfig struct {
@@ -20,30 +20,30 @@ type CatConfig struct {
 }
 
 func (cmd CatCommand) Run(mochaDir string, config CatConfig) error {
-	if cmd.AppReferences == nil {
-		return errors.New("at least one app reference is required")
+	if cmd.ManifestReferences == nil {
+		return errors.New("at least one manifest reference is required")
 	}
 
-	for _, entry := range cmd.AppReferences {
-		appRef, err := app.ParseAppString(entry)
+	for _, refString := range cmd.ManifestReferences {
+		manifestRef, err := manifest.ParseRefString(refString)
 		if err != nil {
-			return fmt.Errorf("failed to parse app ref %q: %w", entry, err)
+			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
 		}
 
-		appRef, err = app.PopulateAppRef(appRef, mochaDir)
+		manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
 		if err != nil {
-			return fmt.Errorf("failed to get %q manifest details: %w", entry, err)
+			return fmt.Errorf("failed to get %q manifest details: %w", refString, err)
 		}
 
 		if config.Command == "" {
-			data, err := os.ReadFile(appRef.ManifestPath)
+			data, err := os.ReadFile(manifestRef.ManifestPath)
 			if err != nil {
-				return fmt.Errorf("failed to read manifest %q: %w", appRef.ManifestPath, err)
+				return fmt.Errorf("failed to read manifest %q: %w", manifestRef.ManifestPath, err)
 			}
 
 			_, err = os.Stdout.Write(data)
 			if err != nil {
-				return fmt.Errorf("failed to display manifest %q: %w", appRef.ManifestPath, err)
+				return fmt.Errorf("failed to display manifest %q: %w", manifestRef.ManifestPath, err)
 			}
 
 			continue
@@ -53,7 +53,7 @@ func (cmd CatCommand) Run(mochaDir string, config CatConfig) error {
 			return fmt.Errorf("command %s must contain [path] to replace", config.Command)
 		}
 
-		commandStr := strings.Replace(config.Command, "[path]", appRef.ManifestPath, 1)
+		commandStr := strings.Replace(config.Command, "[path]", manifestRef.ManifestPath, 1)
 
 		command := exec.Command("cmd.exe", "/C", commandStr)
 		command.Stdin = os.Stdin
@@ -62,7 +62,7 @@ func (cmd CatCommand) Run(mochaDir string, config CatConfig) error {
 		err = command.Run()
 
 		if err != nil {
-			return fmt.Errorf("failed to display manifest %q: %w", appRef.ManifestPath, err)
+			return fmt.Errorf("failed to display manifest %q: %w", manifestRef.ManifestPath, err)
 		}
 	}
 

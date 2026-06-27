@@ -7,39 +7,39 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Protract-123/mocha/app"
 	"github.com/Protract-123/mocha/fileops"
+	"github.com/Protract-123/mocha/manifest"
 	"github.com/Protract-123/mocha/output"
 	"github.com/Protract-123/mocha/shim"
 )
 
 type InstallCommand struct {
-	AppReferences []string `arg:"positional"`
-	Force         bool     `arg:"-f,--force"`
+	ManifestReferences []string `arg:"positional"`
+	Force              bool     `arg:"-f,--force"`
 }
 
 func (cmd InstallCommand) Run(mochaDir string) error {
-	if cmd.AppReferences == nil {
-		return errors.New("at least one app reference is required")
+	if cmd.ManifestReferences == nil {
+		return errors.New("at least one manifest reference is required")
 	}
 
-	for _, appString := range cmd.AppReferences {
-		appRef, err := app.ParseAppString(appString)
+	for _, refString := range cmd.ManifestReferences {
+		manifestRef, err := manifest.ParseRefString(refString)
 		if err != nil {
-			return fmt.Errorf("failed to parse app ref %q: %w", appString, err)
+			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
 		}
 
-		appRef, err = app.PopulateAppRef(appRef, mochaDir)
+		manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
 		if err != nil {
-			return fmt.Errorf("failed to get %q manifest details: %w", appString, err)
+			return fmt.Errorf("failed to get %q manifest details: %w", refString, err)
 		}
 
-		downloadArch, err := app.GetSystemArch()
+		downloadArch, err := manifest.GetSystemArch()
 		if err != nil {
 			return err
 		}
 
-		downloadEntries, err := app.GetManifestDownloads(appRef.ManifestPath, downloadArch)
+		downloadEntries, err := manifest.GetManifestDownloads(manifestRef.ManifestPath, downloadArch)
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ func (cmd InstallCommand) Run(mochaDir string) error {
 		var downloadPaths []string
 
 		for _, entry := range downloadEntries {
-			downloadPath := fileops.GetCachePath(mochaDir, appRef.Name, appRef.Version, entry.URL)
+			downloadPath := fileops.GetCachePath(mochaDir, manifestRef.Name, manifestRef.Version, entry.URL)
 			filename := filepath.Base(downloadPath)
 
 			_, err = os.Stat(downloadPath)
@@ -76,8 +76,8 @@ func (cmd InstallCommand) Run(mochaDir string) error {
 			downloadPaths = append(downloadPaths, downloadPath)
 		}
 
-		appDir := filepath.Join(mochaDir, "apps", appRef.Name)
-		versionDir := filepath.Join(appDir, appRef.Version)
+		appDir := filepath.Join(mochaDir, "apps", manifestRef.Name)
+		versionDir := filepath.Join(appDir, manifestRef.Version)
 		currentDir := filepath.Join(appDir, "current")
 
 		err = os.MkdirAll(versionDir, 0755)
@@ -104,7 +104,7 @@ func (cmd InstallCommand) Run(mochaDir string) error {
 			return fmt.Errorf("failed to create junction: %w", err)
 		}
 
-		binaries, err := app.GetManifestBin(appRef.ManifestPath)
+		binaries, err := manifest.GetManifestBin(manifestRef.ManifestPath)
 		if err != nil {
 			return fmt.Errorf("failed to get binaries to shim: %w", err)
 		}
@@ -118,7 +118,7 @@ func (cmd InstallCommand) Run(mochaDir string) error {
 			}
 		}
 
-		output.LogOutput(fmt.Sprintf("Installed %s", appRef.Name))
+		output.LogOutput(fmt.Sprintf("Installed %s", manifestRef.Name))
 	}
 
 	return nil
