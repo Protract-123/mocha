@@ -30,7 +30,7 @@ type listShimCommand struct{}
 //type alterShimCommand struct{}
 
 func (cmd *ShimCommand) Run(mochaDir string) error {
-	err := shim.InitShims(mochaDir)
+	err := shim.InitShimBinary(mochaDir)
 	if err != nil {
 		return fmt.Errorf("failed to init shims: %w", err)
 	}
@@ -104,7 +104,7 @@ func (cmd *listShimCommand) Run(mochaDir string) error {
 	for i, entry := range shims {
 		rows[i] = []string{
 			entry.Name,
-			entry.Destination,
+			entry.Target,
 		}
 	}
 

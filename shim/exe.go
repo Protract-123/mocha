@@ -15,22 +15,19 @@ const (
 )
 
 func CreateExeShim(name string, execPath string, mochaDir string) error {
-	err := InitShims(mochaDir)
-	if err != nil {
-		return err
+	if err := InitShimBinary(mochaDir); err != nil {
+		return fmt.Errorf("failed to init shim.exe: %w", err)
 	}
 
 	if !filepath.IsAbs(execPath) {
 		return fmt.Errorf("%s is not an absolute path", execPath)
 	}
 
-	err = createShimFile(name, execPath, mochaDir)
-	if err != nil {
+	if err := createShimFile(name, execPath, mochaDir); err != nil {
 		return fmt.Errorf("failed to create .shim file: %w", err)
 	}
 
-	err = createShimExe(name, execPath, mochaDir)
-	if err != nil {
+	if err := createShimExe(name, execPath, mochaDir); err != nil {
 		return fmt.Errorf("failed to create shim .exe file: %w", err)
 	}
 
@@ -52,14 +49,13 @@ func createShimExe(name string, execPath string, mochaDir string) error {
 		return fmt.Errorf("failed to read shim.exe: %w", err)
 	}
 
-	err = patchPESubsystem(shimExe, subsystem)
-	if err != nil {
+	if err := patchPESubsystem(shimExe, subsystem); err != nil {
 		return fmt.Errorf("failed to patch PE subsystem: %w", err)
 	}
 
 	targetPath := filepath.Join(mochaDir, "shims", fmt.Sprintf("%s.exe", name))
-	err = os.WriteFile(targetPath, shimExe, os.ModePerm)
-	if err != nil {
+
+	if err := os.WriteFile(targetPath, shimExe, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to write %s: %w", targetPath, err)
 	}
 
@@ -71,28 +67,24 @@ func createShimFile(name string, execPath string, mochaDir string) error {
 	shimFilePath := filepath.Join(mochaDir, "shims", shimFileName)
 	shimFileContents := fmt.Sprintf("path = %s", execPath)
 
-	err := os.WriteFile(shimFilePath, []byte(shimFileContents), os.ModePerm)
-	if err != nil {
+	if err := os.WriteFile(shimFilePath, []byte(shimFileContents), os.ModePerm); err != nil {
 		return fmt.Errorf("failed to write %s: %w", shimFileName, err)
 	}
 
 	return nil
 }
 
-func patchPESubsystem(exeFile []byte, subsystem uint16) error {
-	if len(exeFile) < peHeaderOffset+4 {
-		return fmt.Errorf("invalid exe: file too small")
+func patchPESubsystem(exeBytes []byte, subsystem uint16) error {
+	subsystemOffset, err := getSubsystemOffset(exeBytes)
+	if err != nil {
+		return fmt.Errorf("failed to get subsystem offset: %w", err)
 	}
 
-	peOffsetBytes := exeFile[peHeaderOffset : peHeaderOffset+4]
-	peOffset := binary.LittleEndian.Uint32(peOffsetBytes)
-
-	subsystemOffset := peOffset + uint32(peSubsystemOffset)
-	if len(exeFile) < int(subsystemOffset)+2 {
+	if len(exeBytes) < int(subsystemOffset)+2 {
 		return fmt.Errorf("invalid exe: PE header out of bounds")
 	}
 
-	binary.LittleEndian.PutUint16(exeFile[subsystemOffset:subsystemOffset+2], subsystem)
+	binary.LittleEndian.PutUint16(exeBytes[subsystemOffset:subsystemOffset+2], subsystem)
 
 	return nil
 }
@@ -103,14 +95,10 @@ func getPESubsystem(path string) (uint16, error) {
 		return 0, fmt.Errorf("failed to read %s: %w", path, err)
 	}
 
-	if len(exeFile) < peHeaderOffset+4 {
-		return 0, fmt.Errorf("invalid exe: file too small")
+	subsystemOffset, err := getSubsystemOffset(exeFile)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get subsystem offset: %w", err)
 	}
-
-	peOffsetBytes := exeFile[peHeaderOffset : peHeaderOffset+4]
-	peOffset := binary.LittleEndian.Uint32(peOffsetBytes)
-
-	subsystemOffset := peOffset + uint32(peSubsystemOffset)
 
 	if len(exeFile) < int(subsystemOffset)+2 {
 		return 0, fmt.Errorf("invalid exe: PE header out of bounds")
@@ -118,4 +106,15 @@ func getPESubsystem(path string) (uint16, error) {
 
 	subsystem := binary.LittleEndian.Uint16(exeFile[subsystemOffset : subsystemOffset+2])
 	return subsystem, nil
+}
+
+func getSubsystemOffset(exeBytes []byte) (uint32, error) {
+	if len(exeBytes) < peHeaderOffset+4 {
+		return 0, fmt.Errorf("invalid exe: file too small")
+	}
+
+	peOffsetBytes := exeBytes[peHeaderOffset : peHeaderOffset+4]
+	subsystemOffset := binary.LittleEndian.Uint32(peOffsetBytes) + uint32(peSubsystemOffset)
+
+	return subsystemOffset, nil
 }

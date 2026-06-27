@@ -1,18 +1,18 @@
 package shim
 
 import (
-	"archive/zip"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	"io"
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
-	"github.com/Protract-123/mocha/app"
 	"github.com/Protract-123/mocha/fileops"
+	"github.com/Protract-123/mocha/output"
 )
 
 var shimSources = []string{
@@ -22,115 +22,78 @@ var shimSources = []string{
 	"https://github.com/ScoopInstaller/Shim/releases/download/cpp%2Fv0.1.0/",
 }
 
-func InitShims(mochaDir string) error {
-	tmpDir := filepath.Join(mochaDir, "tmp")
+func InitShimBinary(mochaDir string) error {
+	shimExe := filepath.Join(mochaDir, "shim.exe")
 
-	shimDir := filepath.Join(mochaDir, "shims")
-	shimPath := filepath.Join(mochaDir, "shim.exe")
-
-	err := os.MkdirAll(shimDir, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("failed to create shim directory: %w", err)
-	}
-
-	err = os.MkdirAll(tmpDir, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("failed to create tmp directory: %w", err)
-	}
-
-	_, err = os.Stat(shimPath)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to check if shim.exe exists: %w", err)
-	} else if err == nil {
+	if _, err := os.Stat(shimExe); err == nil {
 		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("failed to check if shim.exe exists: %w", err)
 	}
 
-	arch, err := app.GetSystemArch()
+	arch, err := getCPUArch()
 	if err != nil {
 		return fmt.Errorf("failed to get cpu architecture: %w", err)
 	}
 
-	if arch == "64bit" {
-		arch = "x64"
-	} else if arch == "32bit" {
-		arch = "x86"
+	tempDirectory := filepath.Join(mochaDir, "temp")
+	if err := os.MkdirAll(tempDirectory, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
+	defer os.RemoveAll(tempDirectory)
 
-	fileName := fmt.Sprintf("shim-%s.zip", arch)
-	outputPath := filepath.Join(tmpDir, fileName)
+	zipName := fmt.Sprintf("shim-%s.zip", arch)
+	zipPath := filepath.Join(tempDirectory, zipName)
 
-	downloadUrl, err := url.JoinPath(shimSources[3], fileName)
+	downloadURL, err := url.JoinPath(shimSources[3], zipName)
 	if err != nil {
 		return fmt.Errorf("failed to create download url: %w", err)
 	}
 
-	fmt.Printf("Downloading %s from %s\n", fileName, downloadUrl)
+	output.LogOutput(fmt.Sprintf("Downloading %s from %s\n", zipName, downloadURL))
 
-	err = fileops.DownloadFile(downloadUrl, outputPath)
+	if err := fileops.DownloadFile(downloadURL, zipPath); err != nil {
+		return fmt.Errorf("failed to download %s: %w", zipName, err)
+	}
+
+	if err := fileops.ExtractFile(zipPath, tempDirectory); err != nil {
+		return fmt.Errorf("failed to extract %s: %w", zipName, err)
+	}
+
+	shimExeBytes, err := os.ReadFile(filepath.Join(tempDirectory, "shim.exe"))
 	if err != nil {
-		return fmt.Errorf("failed to download %s: %w", fileName, err)
+		return fmt.Errorf("failed to read shim.exe: %w", err)
 	}
-	defer os.Remove(outputPath)
 
-	reader, err := zip.OpenReader(outputPath)
+	checksumBytes, err := os.ReadFile(filepath.Join(tempDirectory, "shim.exe.sha256"))
 	if err != nil {
-		return fmt.Errorf("failed to open zip: %w", err)
-	}
-	defer reader.Close()
-
-	var shimData []byte
-	var hashString string
-
-	for _, file := range reader.File {
-		if file.Name == "shim.exe" {
-			shimData, err = readZipFile(file)
-			if err != nil {
-				return err
-			}
-		}
-
-		if file.Name == "shim.exe.sha256" {
-			content, err := readZipFile(file)
-			if err != nil {
-				return err
-			}
-			hashString = strings.Split(strings.TrimSpace(string(content)), " ")[0]
-		}
+		return fmt.Errorf("failed to read shim.exe.sha256: %w", err)
 	}
 
-	if shimData == nil {
-		return fmt.Errorf("shim.exe not found in %s", fileName)
-	}
+	checksum := strings.Split(strings.TrimSpace(string(checksumBytes)), " ")[0]
+	sumBytes := sha256.Sum256(shimExeBytes)
+	sum := hex.EncodeToString(sumBytes[:])
 
-	if hashString == "" {
-		return fmt.Errorf("shim.exe.sha256 not found in %s", fileName)
-	}
-
-	sum := sha256.Sum256(shimData)
-	fileHash := hex.EncodeToString(sum[:])
-	if fileHash != hashString {
+	if sum != checksum {
 		return fmt.Errorf("shim.exe hash does not match shim.exe.sha256")
 	}
 
-	err = os.WriteFile(shimPath, shimData, 0755)
-	if err != nil {
-		return fmt.Errorf("failed to write shim.exe to %s: %w", shimPath, err)
+	if err := os.WriteFile(shimExe, shimExeBytes, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to write shim.exe to %s: %w", shimExe, err)
 	}
 
 	return nil
 }
 
-func readZipFile(file *zip.File) ([]byte, error) {
-	fileHandle, err := file.Open()
-	if err != nil {
-		return nil, fmt.Errorf("failed to open %s: %w", file.Name, err)
+func getCPUArch() (string, error) {
+	switch runtime.GOARCH {
+	case "386":
+		return "x86", nil
+	case "amd64":
+		return "x64", nil
+	case "arm64":
+		return "arm64", nil
+	default:
+		return "", fmt.Errorf("cpu architecture %q is unsupported", runtime.GOARCH)
 	}
-	defer fileHandle.Close()
-
-	data, err := io.ReadAll(fileHandle)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %w", file.Name, err)
-	}
-
-	return data, nil
 }

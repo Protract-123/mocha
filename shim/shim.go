@@ -8,16 +8,20 @@ import (
 )
 
 type Info struct {
-	Name        string
-	Destination string
+	Name   string
+	Target string
 }
 
 func CreateShim(name string, path string, mochaDir string) error {
+	shimDirectory := filepath.Join(mochaDir, "shims")
+	if err := os.MkdirAll(shimDirectory, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create shim directory: %w", err)
+	}
+
 	fileExtension := filepath.Ext(path)
 
 	if fileExtension == ".exe" || fileExtension == ".com" {
-		err := CreateExeShim(name, path, mochaDir)
-		if err != nil {
+		if err := CreateExeShim(name, path, mochaDir); err != nil {
 			return fmt.Errorf("failed to create exe shim: %w", err)
 		}
 	}
@@ -28,31 +32,29 @@ func CreateShim(name string, path string, mochaDir string) error {
 func DeleteShim(name string, mochaDir string) error {
 	shimsDir := filepath.Join(mochaDir, "shims")
 
-	files, err := os.ReadDir(shimsDir)
+	shims, err := os.ReadDir(shimsDir)
 	if err != nil {
 		return fmt.Errorf("failed to read shims directory: %w", err)
 	}
 
-	noDeletion := true
+	deletion := false
 
-	for _, file := range files {
-		if file.IsDir() {
+	for _, shim := range shims {
+		if shim.IsDir() {
 			continue
 		}
 
-		fileExtension := filepath.Ext(file.Name())
-		fileName := strings.TrimSuffix(file.Name(), fileExtension)
+		shimName := strings.TrimSuffix(shim.Name(), filepath.Ext(shim.Name()))
 
-		if fileName == name {
-			err := os.Remove(filepath.Join(shimsDir, file.Name()))
-			if err != nil {
-				return fmt.Errorf("failed to remove shim file %s: %w", file.Name(), err)
+		if shimName == name {
+			if err := os.Remove(filepath.Join(shimsDir, shim.Name())); err != nil {
+				return fmt.Errorf("failed to remove shim file %s: %w", shim.Name(), err)
 			}
-			noDeletion = false
+			deletion = true
 		}
 	}
 
-	if noDeletion {
+	if !deletion {
 		return fmt.Errorf("no shim found for %q", name)
 	}
 
@@ -62,32 +64,32 @@ func DeleteShim(name string, mochaDir string) error {
 func GetAllShims(mochaDir string) ([]Info, error) {
 	shimsDir := filepath.Join(mochaDir, "shims")
 
-	files, err := os.ReadDir(shimsDir)
+	shims, err := os.ReadDir(shimsDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read shims directory: %w", err)
 	}
 
-	var shims []Info
+	var shimInfo []Info
 
-	for _, file := range files {
-		if file.IsDir() {
+	for _, shim := range shims {
+		if shim.IsDir() {
 			continue
 		}
 
-		if filepath.Ext(file.Name()) == ".shim" {
-			path := filepath.Join(shimsDir, file.Name())
+		if filepath.Ext(shim.Name()) == ".shim" {
+			path := filepath.Join(shimsDir, shim.Name())
 
-			data, err := os.ReadFile(path)
+			shimBytes, err := os.ReadFile(path)
 			if err != nil {
-				return nil, fmt.Errorf("failed to read shim file %s: %w", file.Name(), err)
+				return nil, fmt.Errorf("failed to read shim file %s: %w", shim.Name(), err)
 			}
 
-			name := strings.TrimSuffix(file.Name(), ".shim")
-			destination := strings.Split(string(data), "=")[1]
+			name := strings.TrimSuffix(shim.Name(), ".shim")
+			target := strings.Split(string(shimBytes), "=")[1]
 
-			shims = append(shims, Info{name, destination})
+			shimInfo = append(shimInfo, Info{name, target})
 		}
 	}
 
-	return shims, nil
+	return shimInfo, nil
 }
