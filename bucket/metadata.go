@@ -12,28 +12,25 @@ import (
 type Metadata struct {
 	Name          string
 	Source        string
-	LastUpdated   string
+	LastUpdated   time.Time
 	ManifestCount int
 }
 
 func GetAllBucketMetadata(mochaDir string) ([]Metadata, error) {
-	bucketsDir := filepath.Join(mochaDir, "buckets")
-
-	buckets, err := os.ReadDir(bucketsDir)
+	buckets, err := os.ReadDir(filepath.Join(mochaDir, "buckets"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all buckets: %w", err)
 	}
 
-	var bucketMetadata []Metadata
-
-	for _, entry := range buckets {
-		if !entry.IsDir() {
+	bucketMetadata := make([]Metadata, 0, len(buckets))
+	for _, bucket := range buckets {
+		if !bucket.IsDir() {
 			continue
 		}
 
-		metadata, err := GetBucketMetadata(mochaDir, entry.Name())
+		metadata, err := GetBucketMetadata(mochaDir, bucket.Name())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get metadata for bucket %q: %w", entry.Name(), err)
+			return nil, fmt.Errorf("failed to get metadata for bucket %q: %w", bucket.Name(), err)
 		}
 
 		bucketMetadata = append(bucketMetadata, metadata)
@@ -60,7 +57,7 @@ func GetBucketMetadata(mochaDir string, bucketName string) (Metadata, error) {
 		return Metadata{}, fmt.Errorf("failed to get last update date: %w", err)
 	}
 
-	bucketLastUpdated, err := time.Parse("Mon, 2 Jan 2006 15:04:05 -0700", strings.TrimSpace(string(updatedOut)))
+	bucketLastUpdated, err := time.Parse(time.RFC1123Z, strings.TrimSpace(string(updatedOut)))
 	if err != nil {
 		return Metadata{}, fmt.Errorf("failed to parse last update date: %w", err)
 	}
@@ -69,12 +66,11 @@ func GetBucketMetadata(mochaDir string, bucketName string) (Metadata, error) {
 	if err != nil {
 		return Metadata{}, fmt.Errorf("failed to get manifest count: %w", err)
 	}
-	manifestCount := len(manifests)
 
 	return Metadata{
 		Name:          bucketName,
 		Source:        bucketSource,
-		LastUpdated:   bucketLastUpdated.Format("02-01-2006 15:04:05"),
-		ManifestCount: manifestCount,
+		LastUpdated:   bucketLastUpdated,
+		ManifestCount: len(manifests),
 	}, nil
 }

@@ -57,7 +57,7 @@ func (cmd *listBucketsCommand) Run(mochaDir string) error {
 		rows[index] = []string{
 			entry.Name,
 			entry.Source,
-			entry.LastUpdated,
+			entry.LastUpdated.Format("02-01-2006 15:04:05"),
 			strconv.Itoa(entry.ManifestCount),
 		}
 	}

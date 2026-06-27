@@ -1,58 +1,54 @@
 package bucket
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
 type Bucket struct {
-	Name   string `toml:"name"`
-	Source string `toml:"source"`
+	Name   string
+	Source string
 }
 
 func DownloadBucket(bucket Bucket, mochaDir string) error {
 	bucketsDir := filepath.Join(mochaDir, "buckets")
-
 	if err := os.MkdirAll(bucketsDir, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to make bucket directory: %w", err)
 	}
 
 	destDir := filepath.Join(bucketsDir, bucket.Name)
-
-	_, err := os.Stat(destDir)
-	if err == nil {
+	if _, err := os.Stat(destDir); err == nil {
 		return fmt.Errorf("bucket %s already exists", bucket.Name)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("failed to check if bucket already exists: %w", err)
 	}
 
 	cmd := exec.Command("git", "clone", bucket.Source, destDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err = cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to clone bucket: %w", err)
 	}
+
 	return nil
 }
 
 func DeleteBucket(name string, mochaDir string) error {
-	bucketDir := filepath.Join(mochaDir, "buckets", name)
-
-	err := os.RemoveAll(bucketDir)
-	if err != nil {
-		return fmt.Errorf("failed to delete bucket %q: %v", name, err)
+	if err := os.RemoveAll(filepath.Join(mochaDir, "buckets", name)); err != nil {
+		return fmt.Errorf("failed to delete bucket %q: %w", name, err)
 	}
 	return nil
 }
 
 func UpdateAllBuckets(mochaDir string) error {
-	bucketDir := filepath.Join(mochaDir, "buckets")
-	buckets, err := os.ReadDir(bucketDir)
+	buckets, err := os.ReadDir(filepath.Join(mochaDir, "buckets"))
 	if err != nil {
-		return fmt.Errorf("failed to get all buckets: %v", err)
+		return fmt.Errorf("failed to get all buckets: %w", err)
 	}
 
 	for _, entry := range buckets {
@@ -60,8 +56,7 @@ func UpdateAllBuckets(mochaDir string) error {
 			continue
 		}
 
-		err := UpdateBucket(entry.Name(), mochaDir)
-		if err != nil {
+		if err := UpdateBucket(entry.Name(), mochaDir); err != nil {
 			return fmt.Errorf("failed to update bucket %q: %w", entry.Name(), err)
 		}
 	}
@@ -70,15 +65,12 @@ func UpdateAllBuckets(mochaDir string) error {
 }
 
 func UpdateBucket(bucketName string, mochaDir string) error {
-	bucketPath := filepath.Join(mochaDir, "buckets", bucketName)
-
 	cmd := exec.Command("git", "pull")
-	cmd.Dir = bucketPath
+	cmd.Dir = filepath.Join(mochaDir, "buckets", bucketName)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to run git pull: %w", err)
 	}
 
@@ -88,26 +80,16 @@ func UpdateBucket(bucketName string, mochaDir string) error {
 func ParseBucketList(file string) ([]Bucket, error) {
 	bucketsJson, err := os.ReadFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read buckets list file: %q", err)
+		return nil, fmt.Errorf("failed to read buckets list file: %w", err)
 	}
 
-	var buckets []Bucket
+	var jsonContent map[string]string
+	if err := json.Unmarshal(bucketsJson, &jsonContent); err != nil {
+		return nil, fmt.Errorf("failed to parse %q: %w", file, err)
+	}
 
-	for _, line := range strings.Split(string(bucketsJson), "\n") {
-		line = strings.TrimSpace(line)
-
-		if line == "{" || line == "}" || line == "" {
-			continue
-		}
-
-		parts := strings.SplitN(line, ": ", 2)
-		if len(parts) != 2 {
-			continue
-		}
-
-		name := strings.Trim(parts[0], `"`)
-		url := strings.Trim(parts[1], `",`)
-
+	buckets := make([]Bucket, 0, len(jsonContent))
+	for name, url := range jsonContent {
 		buckets = append(buckets, Bucket{Name: name, Source: url})
 	}
 

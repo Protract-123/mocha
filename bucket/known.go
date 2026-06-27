@@ -1,6 +1,7 @@
 package bucket
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +14,7 @@ const knownBucketsSourceFile = "https://raw.githubusercontent.com/ScoopInstaller
 func GetKnownBucket(name string, mochaDir string) (Bucket, error) {
 	knownBuckets, err := GetKnownBuckets(mochaDir)
 	if err != nil {
-		return Bucket{}, fmt.Errorf("failed to get known buckets: %v", err)
+		return Bucket{}, fmt.Errorf("failed to get known buckets: %w", err)
 	}
 
 	for _, entry := range knownBuckets {
@@ -21,17 +22,20 @@ func GetKnownBucket(name string, mochaDir string) (Bucket, error) {
 			return entry, nil
 		}
 	}
+
 	return Bucket{}, fmt.Errorf("bucket %q is not a known bucket", name)
 }
 
 func GetKnownBuckets(mochaDir string) ([]Bucket, error) {
 	knownBucketsPath := filepath.Join(mochaDir, "known_buckets.json")
 
-	_, err := os.Stat(knownBucketsPath)
-	if os.IsNotExist(err) {
-		err := UpdateKnownBuckets(mochaDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to update known buckets: %w", err)
+	if _, err := os.Stat(knownBucketsPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			if err := UpdateKnownBuckets(mochaDir); err != nil {
+				return nil, fmt.Errorf("failed to update known buckets: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("failed to check if known_buckets.json exists: %w", err)
 		}
 	}
 
@@ -44,11 +48,9 @@ func GetKnownBuckets(mochaDir string) ([]Bucket, error) {
 }
 
 func UpdateKnownBuckets(mochaDir string) error {
-	bucketsPath := filepath.Join(mochaDir, "known_buckets.json")
-
-	err := fileops.DownloadFile(knownBucketsSourceFile, bucketsPath)
-	if err != nil {
-		return fmt.Errorf("failed to download known buckets: %w", err)
+	knownBucketsPath := filepath.Join(mochaDir, "known_buckets.json")
+	if err := fileops.DownloadFile(knownBucketsSourceFile, knownBucketsPath); err != nil {
+		return fmt.Errorf("failed to download known_buckets.json: %w", err)
 	}
 
 	return nil
