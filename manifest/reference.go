@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -60,48 +61,43 @@ func PopulateRef(ref Ref, mochaDir string) (Ref, error) {
 	}
 
 	if ref.Bucket == "" {
-		bucketsDir := filepath.Join(mochaDir, "buckets")
-		buckets, err := os.ReadDir(bucketsDir)
+		buckets, err := os.ReadDir(filepath.Join(mochaDir, "buckets"))
 		if err != nil {
 			return Ref{}, fmt.Errorf("failed to get all buckets: %w", err)
 		}
 
-		for _, dirEntry := range buckets {
-			if !dirEntry.IsDir() {
+		for _, bucket := range buckets {
+			if !bucket.IsDir() {
 				continue
 			}
 
-			manifestPath := filepath.Join(mochaDir, "buckets", dirEntry.Name(), "bucket", fmt.Sprintf("%s.json", ref.Name))
-			_, err := os.Stat(manifestPath)
-
-			if os.IsNotExist(err) {
+			manifestPath := filepath.Join(mochaDir, "buckets", bucket.Name(), "bucket", fmt.Sprintf("%s.json", ref.Name))
+			if _, err := os.Stat(manifestPath); errors.Is(err, os.ErrNotExist) {
 				continue
 			} else if err != nil {
-				return ref, fmt.Errorf("failed to confirm if manifest exists at %q: %w", manifestPath, err)
+				return Ref{}, fmt.Errorf("failed to confirm if manifest exists at %q: %w", manifestPath, err)
 			}
 
-			ref.Bucket = dirEntry.Name()
+			ref.Bucket = bucket.Name()
 			break
 		}
 
 		if ref.Bucket == "" {
-			return ref, fmt.Errorf("failed to find manifest %q in buckets", ref.Name)
+			return Ref{}, fmt.Errorf("failed to find manifest %q in buckets", ref.Name)
 		}
 	}
 
 	manifestPath := filepath.Join(mochaDir, "buckets", ref.Bucket, "bucket", fmt.Sprintf("%s.json", ref.Name))
-	_, err := os.Stat(manifestPath)
-
-	ref.ManifestPath = manifestPath
-
-	if err != nil {
+	if _, err := os.Stat(manifestPath); err != nil {
 		return Ref{}, fmt.Errorf("failed to find manifest %q in bucket %q: %w", ref.Name, ref.Bucket, err)
 	}
+
+	ref.ManifestPath = manifestPath
 
 	if ref.Version == "" {
 		version, err := GetManifestVersion(manifestPath)
 		if err != nil {
-			return ref, fmt.Errorf("failed to get manifest version for %q in bucket %q: %w", ref.Name, ref.Bucket, err)
+			return Ref{}, fmt.Errorf("failed to get manifest version for %q in bucket %q: %w", ref.Name, ref.Bucket, err)
 		}
 
 		ref.Version = version

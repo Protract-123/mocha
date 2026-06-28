@@ -57,8 +57,7 @@ func GetManifestBin(manifestPath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to get manifest json: %w", err)
 	}
 
-	bins := extractStringOrArray(jsonData["bin"])
-	return bins, nil
+	return extractStringOrArray(jsonData["bin"]), nil
 }
 
 func GetManifestVersion(manifestPath string) (string, error) {
@@ -78,12 +77,12 @@ func GetManifestVersion(manifestPath string) (string, error) {
 func getManifestJson(manifestPath string) (map[string]any, error) {
 	rawData, err := os.ReadFile(manifestPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read manifest %q", manifestPath)
+		return nil, fmt.Errorf("failed to read manifest %q: %w", manifestPath, err)
 	}
 
 	var jsonData map[string]any
 	if err := json.Unmarshal(rawData, &jsonData); err != nil {
-		return nil, fmt.Errorf("failed to parse manifest %q", manifestPath)
+		return nil, fmt.Errorf("failed to parse manifest %q: %w", manifestPath, err)
 	}
 
 	return jsonData, nil
