@@ -37,7 +37,7 @@ func VerifyHash(filePath string, hashRef string) error {
 
 	fileHandle, err := os.Open(filePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open file %q: %w", filePath, err)
 	}
 	defer fileHandle.Close()
 
@@ -56,7 +56,7 @@ func VerifyHash(filePath string, hashRef string) error {
 	}
 
 	if _, err := io.Copy(hasher, fileHandle); err != nil {
-		return err
+		return fmt.Errorf("unable to hash file %q: %w", filePath, err)
 	}
 
 	fileHash := hex.EncodeToString(hasher.Sum(nil))

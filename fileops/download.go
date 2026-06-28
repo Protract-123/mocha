@@ -9,25 +9,19 @@ import (
 	"time"
 )
 
-// Taken from https://gist.github.com/cnu/026744b1e86c6d9e22313d06cba4c2e9
+// Inspired from https://gist.github.com/cnu/026744b1e86c6d9e22313d06cba4c2e9
 
 func DownloadFile(url string, downloadPath string) error {
 	err := os.MkdirAll(filepath.Dir(downloadPath), os.ModePerm)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create directory %s: %w", downloadPath, err)
 	}
-
-	out, err := os.Create(downloadPath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
 
 	client := &http.Client{Timeout: 30 * time.Second}
 
 	resp, err := client.Get(url)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to download %s: %w", url, err)
 	}
 	defer resp.Body.Close()
 
@@ -35,13 +29,21 @@ func DownloadFile(url string, downloadPath string) error {
 		return fmt.Errorf("bad HTTP status %q", resp.Status)
 	}
 
+	out, err := os.Create(downloadPath)
+	if err != nil {
+		return fmt.Errorf("failed to create file %s: %w", downloadPath, err)
+	}
+	defer out.Close()
+
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
+		_ = os.Remove(downloadPath)
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
 	err = out.Sync()
 	if err != nil {
+		_ = os.Remove(downloadPath)
 		return fmt.Errorf("failed to sync downloaded file: %w", err)
 	}
 

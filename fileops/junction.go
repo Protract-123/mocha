@@ -10,12 +10,8 @@ import (
 
 func CreateJunction(targetDir string, junctionPath string) error {
 	cmd := exec.Command("cmd", "/c", "mklink", "/j", junctionPath, targetDir)
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		println(cmd.String())
-		return fmt.Errorf("failed to create junction. Output: %s: %w", strings.TrimSpace(string(out)), err)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to create junction (output: %s): %w", strings.TrimSpace(string(out)), err)
 	}
-
 	return nil
 }

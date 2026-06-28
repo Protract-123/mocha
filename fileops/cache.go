@@ -17,10 +17,17 @@ type CacheItem struct {
 	Path    string
 }
 
-func GetCachePath(mochaDir string, app string, version string, url string) string {
-	sum := sha256.Sum256([]byte(url))
+func GetCachePath(mochaDir string, app string, version string, rawURL string) string {
+	sum := sha256.Sum256([]byte(rawURL))
 	shortHash := hex.EncodeToString(sum[:])[:7]
-	ext := extractFileExtension(url)
+	var ext string
+
+	parsedUrl, err := url.Parse(rawURL)
+	if err != nil {
+		ext = filepath.Ext(rawURL)
+	} else {
+		ext = filepath.Ext(parsedUrl.Path)
+	}
 
 	return filepath.Join(mochaDir, "cache", fmt.Sprintf("%s#%s#%s%s", app, version, shortHash, ext))
 }
@@ -33,7 +40,7 @@ func GetCacheItems(mochaDir string) ([]CacheItem, error) {
 		return nil, fmt.Errorf("failed to read cache directory: %w", err)
 	}
 
-	var cacheItems []CacheItem
+	cacheItems := make([]CacheItem, 0, len(cacheFiles))
 
 	for _, item := range cacheFiles {
 		if item.IsDir() {
@@ -58,12 +65,4 @@ func GetCacheItems(mochaDir string) ([]CacheItem, error) {
 	}
 
 	return cacheItems, nil
-}
-
-func extractFileExtension(rawURL string) string {
-	parsedUrl, err := url.Parse(rawURL)
-	if err != nil {
-		return filepath.Ext(rawURL)
-	}
-	return filepath.Ext(parsedUrl.Path)
 }

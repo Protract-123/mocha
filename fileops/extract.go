@@ -38,6 +38,7 @@ func extractZip(zipPath string, outputDir string) error {
 	for _, file := range reader.File {
 		err = extractZipFile(file, outputDir)
 		if err != nil {
+			_ = os.RemoveAll(outputDir)
 			return fmt.Errorf("failed to unzip file: %w", err)
 		}
 	}
@@ -45,7 +46,7 @@ func extractZip(zipPath string, outputDir string) error {
 	return nil
 }
 
-// TODO: handle zip bombs
+// TODO: improve zip bomb protection
 
 func extractZipFile(file *zip.File, outputDir string) error {
 	outputPath := filepath.Join(outputDir, file.Name)
@@ -78,9 +79,12 @@ func extractZipFile(file *zip.File, outputDir string) error {
 	}
 	defer srcFile.Close()
 
-	_, err = io.Copy(outFile, srcFile)
+	bytesWritten, err := io.Copy(outFile, io.LimitReader(srcFile, 512*1024*1024+1))
 	if err != nil {
 		return fmt.Errorf("failed to copy data to file %s: %w", file.Name, err)
+	}
+	if bytesWritten > 512*1024*1024 {
+		return fmt.Errorf("file %s is too large", file.Name)
 	}
 
 	err = outFile.Sync()
