@@ -23,24 +23,21 @@ type removeBucketCommand struct {
 	Name string `arg:"positional,required"`
 }
 type addBucketCommand struct {
-	Name          string  `arg:"positional,required"`
-	RepositoryURL url.URL `arg:"positional"`
+	Name          string   `arg:"positional,required"`
+	RepositoryURL *url.URL `arg:"positional"`
 }
 
 func (cmd *BucketCommand) Run(mochaDir string) error {
-	if cmd.Known != nil {
-		return cmd.Known.Run(mochaDir)
-	}
-	if cmd.Add != nil {
+	switch {
+	case cmd.Add != nil:
 		return cmd.Add.Run(mochaDir)
-	}
-	if cmd.Rm != nil {
+	case cmd.Known != nil:
+		return cmd.Known.Run(mochaDir)
+	case cmd.Rm != nil:
 		return cmd.Rm.Run(mochaDir)
-	}
-	if cmd.List != nil {
+	case cmd.List != nil:
 		return cmd.List.Run(mochaDir)
 	}
-
 	return nil
 }
 
@@ -48,6 +45,10 @@ func (cmd *listBucketsCommand) Run(mochaDir string) error {
 	bucketMetadata, err := bucket.GetAllBucketMetadata(mochaDir)
 	if err != nil {
 		return fmt.Errorf("failed to get bucket metadata: %w", err)
+	}
+
+	if len(bucketMetadata) == 0 {
+		return fmt.Errorf("no bucket metadata found")
 	}
 
 	headers := []string{"Name", "Source", "Updated", "Manifests"}
@@ -62,8 +63,7 @@ func (cmd *listBucketsCommand) Run(mochaDir string) error {
 		}
 	}
 
-	err = output.PrintTable(headers, rows)
-	if err != nil {
+	if err := output.PrintTable(headers, rows); err != nil {
 		return fmt.Errorf("failed to display bucket metadata: %w", err)
 	}
 
@@ -77,15 +77,14 @@ func (cmd *knownBucketsCommand) Run(mochaDir string) error {
 	}
 
 	for _, entry := range knownBuckets {
-		fmt.Print(output.AnsiBoldMagenta, entry.Name, output.AnsiReset, ": ", entry.Source, "\n")
+		output.LogOutput(fmt.Sprint(output.AnsiBoldMagenta, entry.Name, output.AnsiReset, ": ", entry.Source, "\n"))
 	}
 
 	return nil
 }
 
 func (cmd *removeBucketCommand) Run(mochaDir string) error {
-	err := bucket.DeleteBucket(cmd.Name, mochaDir)
-	if err != nil {
+	if err := bucket.DeleteBucket(cmd.Name, mochaDir); err != nil {
 		return fmt.Errorf("failed to delete bucket %q: %w", cmd.Name, err)
 	}
 
@@ -93,19 +92,21 @@ func (cmd *removeBucketCommand) Run(mochaDir string) error {
 }
 
 func (cmd *addBucketCommand) Run(mochaDir string) error {
-	if cmd.Name == "" {
-		return fmt.Errorf("no bucket name specified")
+	if _, err := exec.LookPath("git"); err != nil {
+		return fmt.Errorf("git is required to add buckets")
 	}
 
-	_, err := exec.LookPath("git")
-	if err != nil {
-		return fmt.Errorf("git is required to add buckets, please install git by running `mocha install git`")
-	}
+	var identifiedBucket bucket.Bucket
 
-	identifiedBucket, err := bucket.GetKnownBucket(cmd.Name, mochaDir)
-	if err != nil {
-		if cmd.RepositoryURL.String() == "" || !IsValidURL(cmd.RepositoryURL) {
-			return fmt.Errorf("bucket %s is not known, please provide a valid URL", cmd.Name)
+	if cmd.RepositoryURL == nil {
+		knownBucket, err := bucket.GetKnownBucket(cmd.Name, mochaDir)
+		if err != nil {
+			return fmt.Errorf("failed to get known bucket: %w", err)
+		}
+		identifiedBucket = knownBucket
+	} else {
+		if (cmd.RepositoryURL.Scheme != "http" && cmd.RepositoryURL.Scheme != "https") || cmd.RepositoryURL.Host == "" {
+			return fmt.Errorf("invalid repository URL %q provided for bucket %q", cmd.RepositoryURL.String(), cmd.Name)
 		}
 
 		identifiedBucket = bucket.Bucket{
@@ -114,21 +115,9 @@ func (cmd *addBucketCommand) Run(mochaDir string) error {
 		}
 	}
 
-	err = bucket.DownloadBucket(identifiedBucket, mochaDir)
-	if err != nil {
+	if err := bucket.DownloadBucket(identifiedBucket, mochaDir); err != nil {
 		return fmt.Errorf("failed to download bucket %q: %w", identifiedBucket.Name, err)
 	}
 
 	return nil
-}
-
-func IsValidURL(url url.URL) bool {
-	if url.Scheme != "http" && url.Scheme != "https" {
-		return false
-	}
-	if url.Host == "" {
-		return false
-	}
-
-	return true
 }

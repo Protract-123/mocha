@@ -1,7 +1,6 @@
 package commands
 
 import (
-	_ "embed"
 	"errors"
 	"fmt"
 	"os"
@@ -12,11 +11,10 @@ import (
 
 type ConfigCommand struct{}
 
-func (cmd ConfigCommand) Run(mochaDir string) error {
+func (cmd *ConfigCommand) Run(mochaDir string) error {
 	configPath, err := config.GetConfigPath(mochaDir)
 	if errors.Is(err, config.ErrConfigNotFound) {
-		err := config.WriteDefaultConfig(configPath)
-		if err != nil {
+		if err := config.WriteDefaultConfig(configPath); err != nil {
 			return fmt.Errorf("failed to write default config: %w", err)
 		}
 	} else if err != nil {
@@ -29,13 +27,13 @@ func (cmd ConfigCommand) Run(mochaDir string) error {
 	}
 
 	if editor != "" {
-		cmd := exec.Command(editor, configPath)
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err = cmd.Run()
+		editorCmd := exec.Command(editor, configPath)
+		editorCmd.Stdin = os.Stdin
+		editorCmd.Stdout = os.Stdout
+		editorCmd.Stderr = os.Stderr
+		err = editorCmd.Run()
 	} else {
-		err = exec.Command("cmd", "/c", "start", configPath).Run()
+		err = exec.Command("cmd.exe", "/c", "start", configPath).Run()
 	}
 
 	if err != nil {

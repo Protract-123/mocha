@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,11 +14,7 @@ type CatCommand struct {
 	ManifestReferences []string `arg:"positional,required"`
 }
 
-func (cmd CatCommand) Run(mochaDir string, config config.CatConfig) error {
-	if cmd.ManifestReferences == nil {
-		return errors.New("at least one manifest reference is required")
-	}
-
+func (cmd *CatCommand) Run(mochaDir string, config config.CatConfig) error {
 	for _, refString := range cmd.ManifestReferences {
 		manifestRef, err := manifest.ParseRefString(refString)
 		if err != nil {
@@ -37,8 +32,7 @@ func (cmd CatCommand) Run(mochaDir string, config config.CatConfig) error {
 				return fmt.Errorf("failed to read manifest %q: %w", manifestRef.ManifestPath, err)
 			}
 
-			_, err = os.Stdout.Write(data)
-			if err != nil {
+			if _, err := os.Stdout.Write(data); err != nil {
 				return fmt.Errorf("failed to display manifest %q: %w", manifestRef.ManifestPath, err)
 			}
 
@@ -46,7 +40,7 @@ func (cmd CatCommand) Run(mochaDir string, config config.CatConfig) error {
 		}
 
 		if !strings.Contains(config.Command, "[path]") {
-			return fmt.Errorf("command %s must contain [path] to replace", config.Command)
+			return fmt.Errorf("command %q must contain [path] to replace", config.Command)
 		}
 
 		commandStr := strings.Replace(config.Command, "[path]", manifestRef.ManifestPath, 1)
@@ -55,9 +49,8 @@ func (cmd CatCommand) Run(mochaDir string, config config.CatConfig) error {
 		command.Stdin = os.Stdin
 		command.Stdout = os.Stdout
 		command.Stderr = os.Stderr
-		err = command.Run()
 
-		if err != nil {
+		if err := command.Run(); err != nil {
 			return fmt.Errorf("failed to display manifest %q: %w", manifestRef.ManifestPath, err)
 		}
 	}

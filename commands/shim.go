@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,8 +14,6 @@ type ShimCommand struct {
 	Add    *addShimCommand    `arg:"subcommand:add"`
 	Remove *removeShimCommand `arg:"subcommand:remove"`
 	List   *listShimCommand   `arg:"subcommand:list"`
-	//Info   *infoShimCommand   `arg:"subcommand:info"`
-	//Alter  *alterShimCommand  `arg:"subcommand:alter"`
 }
 
 type addShimCommand struct {
@@ -26,57 +25,32 @@ type removeShimCommand struct {
 }
 type listShimCommand struct{}
 
-//type infoShimCommand struct{}
-//type alterShimCommand struct{}
-
 func (cmd *ShimCommand) Run(mochaDir string) error {
-	err := shim.InitShimBinary(mochaDir)
-	if err != nil {
-		return fmt.Errorf("failed to init shims: %w", err)
+	switch {
+	case cmd.Add != nil:
+		return cmd.Add.Run(mochaDir)
+	case cmd.Remove != nil:
+		return cmd.Remove.Run(mochaDir)
+	case cmd.List != nil:
+		return cmd.List.Run(mochaDir)
 	}
-
-	if cmd.Add != nil {
-		err := cmd.Add.Run(mochaDir)
-		if err != nil {
-			return fmt.Errorf("failed to add shims: %w", err)
-		}
-	}
-	if cmd.Remove != nil {
-		err := cmd.Remove.Run(mochaDir)
-		if err != nil {
-			return fmt.Errorf("failed to remove shims: %w", err)
-		}
-	}
-	if cmd.List != nil {
-		err := cmd.List.Run(mochaDir)
-		if err != nil {
-			return fmt.Errorf("failed to list shims: %w", err)
-		}
-	}
-
 	return nil
 }
 
 func (cmd *addShimCommand) Run(mochaDir string) error {
-	var shimPath string
+	shimPath := cmd.Path
 
-	_, err := os.Stat(cmd.Path)
-	if err == nil {
-		shimPath = cmd.Path
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("failed to confirm target's existence: %w", err)
-	}
-
-	if shimPath == "" {
+	if _, err := os.Stat(cmd.Path); errors.Is(err, os.ErrNotExist) {
 		resolved, err := exec.LookPath(cmd.Path)
 		if err != nil {
 			return fmt.Errorf("failed to lookup target's path: %w", err)
 		}
 		shimPath = resolved
+	} else if err != nil {
+		return fmt.Errorf("failed to confirm target's existence: %w", err)
 	}
 
-	err = shim.CreateShim(cmd.Name, shimPath, mochaDir)
-	if err != nil {
+	if err := shim.CreateShim(cmd.Name, shimPath, mochaDir); err != nil {
 		return fmt.Errorf("failed to create shim: %w", err)
 	}
 
@@ -84,8 +58,7 @@ func (cmd *addShimCommand) Run(mochaDir string) error {
 }
 
 func (cmd *removeShimCommand) Run(mochaDir string) error {
-	err := shim.DeleteShim(cmd.Name, mochaDir)
-	if err != nil {
+	if err := shim.DeleteShim(cmd.Name, mochaDir); err != nil {
 		return fmt.Errorf("failed to delete shim: %w", err)
 	}
 
@@ -98,6 +71,10 @@ func (cmd *listShimCommand) Run(mochaDir string) error {
 		return fmt.Errorf("failed to get all shims: %w", err)
 	}
 
+	if len(shims) == 0 {
+		return fmt.Errorf("no shims found")
+	}
+
 	headers := []string{"Name", "Destination"}
 	rows := make([][]string, len(shims))
 
@@ -108,8 +85,7 @@ func (cmd *listShimCommand) Run(mochaDir string) error {
 		}
 	}
 
-	err = output.PrintTable(headers, rows)
-	if err != nil {
+	if err := output.PrintTable(headers, rows); err != nil {
 		return fmt.Errorf("failed to print shim info table: %w", err)
 	}
 

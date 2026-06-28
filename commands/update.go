@@ -11,14 +11,12 @@ type UpdateCommand struct {
 }
 
 func (cmd *UpdateCommand) Run(mochaDir string) error {
-	err := bucket.UpdateKnownBuckets(mochaDir)
-	if err != nil {
+	if err := bucket.UpdateKnownBuckets(mochaDir); err != nil {
 		return fmt.Errorf("failed to update known buckets: %w", err)
 	}
 
 	if len(cmd.Buckets) == 0 {
-		err := bucket.UpdateAllBuckets(mochaDir)
-		if err != nil {
+		if err := bucket.UpdateAllBuckets(mochaDir); err != nil {
 			return fmt.Errorf("failed to update all buckets: %w", err)
 		}
 
@@ -26,8 +24,7 @@ func (cmd *UpdateCommand) Run(mochaDir string) error {
 	}
 
 	for _, entry := range cmd.Buckets {
-		err := bucket.UpdateBucket(entry, mochaDir)
-		if err != nil {
+		if err := bucket.UpdateBucket(entry, mochaDir); err != nil {
 			return fmt.Errorf("failed to update bucket %q: %w", entry, err)
 		}
 	}

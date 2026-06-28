@@ -14,15 +14,11 @@ import (
 )
 
 type InstallCommand struct {
-	ManifestReferences []string `arg:"positional"`
+	ManifestReferences []string `arg:"positional,required"`
 	Force              bool     `arg:"-f,--force"`
 }
 
-func (cmd InstallCommand) Run(mochaDir string) error {
-	if cmd.ManifestReferences == nil {
-		return errors.New("at least one manifest reference is required")
-	}
-
+func (cmd *InstallCommand) Run(mochaDir string) error {
 	for _, refString := range cmd.ManifestReferences {
 		manifestRef, err := manifest.ParseRefString(refString)
 		if err != nil {
@@ -36,12 +32,12 @@ func (cmd InstallCommand) Run(mochaDir string) error {
 
 		downloadArch, err := manifest.GetSystemArch()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get system architecture: %w", err)
 		}
 
 		downloadEntries, err := manifest.GetManifestDownloads(manifestRef.ManifestPath, downloadArch)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get manifest downloads: %w", err)
 		}
 
 		var downloadPaths []string
@@ -50,11 +46,9 @@ func (cmd InstallCommand) Run(mochaDir string) error {
 			downloadPath := fileops.GetCachePath(mochaDir, manifestRef.Name, manifestRef.Version, entry.URL)
 			filename := filepath.Base(downloadPath)
 
-			_, err = os.Stat(downloadPath)
-			if err != nil || cmd.Force {
+			if _, err := os.Stat(downloadPath); err != nil || cmd.Force {
 				output.LogOutput(fmt.Sprintf("Downloading %s to %s", entry.URL, downloadPath))
-				err = fileops.DownloadFile(entry.URL, downloadPath)
-				if err != nil {
+				if err := fileops.DownloadFile(entry.URL, downloadPath); err != nil {
 					return fmt.Errorf("failed to download %s: %w", filename, err)
 				}
 				output.LogOutput(fmt.Sprintf("Downloaded %s", filename))
@@ -62,13 +56,8 @@ func (cmd InstallCommand) Run(mochaDir string) error {
 				output.LogOutput(fmt.Sprintf("Cache hit, skipping %s", filename))
 			}
 
-			err = fileops.VerifyHash(downloadPath, entry.Hash)
-			if err != nil {
-				err2 := os.Remove(downloadPath)
-				if err2 != nil {
-					return fmt.Errorf("failed to remove %s after invalid hash: %w", filename, err2)
-				}
-
+			if err := fileops.VerifyHash(downloadPath, entry.Hash); err != nil {
+				_ = os.Remove(downloadPath)
 				return fmt.Errorf("failed to verify %s: %w", filename, err)
 			}
 
@@ -80,27 +69,21 @@ func (cmd InstallCommand) Run(mochaDir string) error {
 		versionDir := filepath.Join(appDir, manifestRef.Version)
 		currentDir := filepath.Join(appDir, "current")
 
-		err = os.MkdirAll(versionDir, 0755)
-		if err != nil {
+		if err := os.MkdirAll(versionDir, os.ModePerm); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", versionDir, err)
 		}
 
 		for _, downloadPath := range downloadPaths {
-			err = fileops.ExtractFile(downloadPath, versionDir)
-			if err != nil {
+			if err := fileops.ExtractFile(downloadPath, versionDir); err != nil {
 				return fmt.Errorf("failed to extract %s: %w", filepath.Base(downloadPath), err)
 			}
 		}
 
-		if _, err := os.Stat(currentDir); err == nil {
-			err := os.Remove(currentDir)
-			if err != nil {
-				return fmt.Errorf("failed to remove old junction %s: %w", currentDir, err)
-			}
+		if err := os.Remove(currentDir); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("failed to remove old junction %s: %w", currentDir, err)
 		}
 
-		err = fileops.CreateJunction(versionDir, currentDir)
-		if err != nil {
+		if err := fileops.CreateJunction(versionDir, currentDir); err != nil {
 			return fmt.Errorf("failed to create junction: %w", err)
 		}
 
@@ -112,8 +95,7 @@ func (cmd InstallCommand) Run(mochaDir string) error {
 		for _, binary := range binaries {
 			shimName := strings.TrimSuffix(filepath.Base(binary), filepath.Ext(binary))
 			shimPath := filepath.Join(currentDir, binary)
-			err := shim.CreateShim(shimName, shimPath, mochaDir)
-			if err != nil {
+			if err := shim.CreateShim(shimName, shimPath, mochaDir); err != nil {
 				return fmt.Errorf("failed to create shim %s: %w", shimName, err)
 			}
 		}

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -19,27 +20,24 @@ type clearCacheCommand struct {
 	ManifestReferences []string `arg:"positional"`
 }
 
-func (cmd CacheCommand) Run(mochaDir string) error {
-	if cmd.List != nil {
-		err := cmd.List.Run(mochaDir)
-		if err != nil {
-			return fmt.Errorf("failed to list cache items: %w", err)
-		}
+func (cmd *CacheCommand) Run(mochaDir string) error {
+	switch {
+	case cmd.List != nil:
+		return cmd.List.Run(mochaDir)
+	case cmd.Clear != nil:
+		return cmd.Clear.Run(mochaDir)
 	}
-	if cmd.Clear != nil {
-		err := cmd.Clear.Run(mochaDir)
-		if err != nil {
-			return fmt.Errorf("failed to clear cache: %w", err)
-		}
-	}
-
 	return nil
 }
 
-func (cmd listCacheCommand) Run(mochaDir string) error {
+func (cmd *listCacheCommand) Run(mochaDir string) error {
 	rawCacheItems, err := fileops.GetCacheItems(mochaDir)
 	if err != nil {
 		return fmt.Errorf("failed to get cache items: %w", err)
+	}
+
+	if len(rawCacheItems) == 0 {
+		return fmt.Errorf("no cache items found")
 	}
 
 	type cacheItemKey struct{ name, version string }
@@ -59,46 +57,45 @@ func (cmd listCacheCommand) Run(mochaDir string) error {
 	headers := []string{"Name", "Version", "Size"}
 	rows := make([][]string, len(cacheItems))
 
-	var totalBytes int64 = 0
+	var totalBytes int64
 
 	for i, key := range cacheItemOrder {
 		item := cacheItems[key]
 		rows[i] = []string{
 			item.Name,
 			item.Version,
-			ConvertToHumanReadable(item.Size),
+			convertToHumanReadable(item.Size),
 		}
 
 		totalBytes += item.Size
 	}
 
-	err = output.PrintTable(headers, rows)
-	if err != nil {
+	if err := output.PrintTable(headers, rows); err != nil {
 		return fmt.Errorf("failed to display cache items: %w", err)
 	}
 
-	fmt.Printf("\nTotal Size: %s\n", ConvertToHumanReadable(totalBytes))
+	fmt.Printf("\nTotal Size: %s\n", convertToHumanReadable(totalBytes))
 
 	return nil
 }
 
-func ConvertToHumanReadable(bytes int64) string {
+func convertToHumanReadable(bytes int64) string {
 	var units = [...]string{"KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"}
 
-	value := float32(bytes)
+	value := float64(bytes)
 	unit := "Bytes"
 
 	i := 0
-	for value >= 1024 {
+	for value >= 1024 && i < len(units) {
 		value = value / 1024
 		unit = units[i]
-		i += 1
+		i++
 	}
 
 	return fmt.Sprintf("%.2f %s", value, unit)
 }
 
-func (cmd clearCacheCommand) Run(mochaDir string) error {
+func (cmd *clearCacheCommand) Run(mochaDir string) error {
 	cacheItems, err := fileops.GetCacheItems(mochaDir)
 	if err != nil {
 		return fmt.Errorf("failed to get cache items: %w", err)
@@ -106,8 +103,7 @@ func (cmd clearCacheCommand) Run(mochaDir string) error {
 
 	if len(cmd.ManifestReferences) == 0 {
 		for _, cacheItem := range cacheItems {
-			err := os.Remove(cacheItem.Path)
-			if err != nil {
+			if err := os.Remove(cacheItem.Path); err != nil {
 				return fmt.Errorf("failed to remove cache item %q: %w", cacheItem.Path, err)
 			}
 		}
@@ -130,8 +126,7 @@ func (cmd clearCacheCommand) Run(mochaDir string) error {
 				continue
 			}
 
-			err := os.Remove(cacheItem.Path)
-			if err != nil && !os.IsNotExist(err) {
+			if err := os.Remove(cacheItem.Path); err != nil && !errors.Is(err, os.ErrNotExist) {
 				return fmt.Errorf("failed to remove cache item %q: %w", cacheItem.Path, err)
 			}
 		}
