@@ -20,24 +20,9 @@ type InstallCommand struct {
 
 func (cmd *InstallCommand) Run(mochaDir string) error {
 	for _, refString := range cmd.ManifestReferences {
-		manifestRef, err := manifest.ParseRefString(refString)
+		manifestRef, downloadResults, err := manifest.DownloadManifestFiles(refString, cmd.Force, mochaDir)
 		if err != nil {
-			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
-		}
-
-		manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
-		if err != nil {
-			return fmt.Errorf("failed to get %q manifest details: %w", refString, err)
-		}
-
-		downloadArch, err := manifest.GetSystemArch()
-		if err != nil {
-			return fmt.Errorf("failed to get system architecture: %w", err)
-		}
-
-		downloadEntries, err := manifest.GetManifestDownloads(manifestRef.ManifestPath, downloadArch)
-		if err != nil {
-			return fmt.Errorf("failed to get manifest downloads: %w", err)
+			return fmt.Errorf("error downloading manifest files: %w", err)
 		}
 
 		versionDir := filepath.Join(mochaDir, "apps", manifestRef.Name, manifestRef.Version)
@@ -45,29 +30,9 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 			return fmt.Errorf("failed to create directory %s: %w", versionDir, err)
 		}
 
-		for _, entry := range downloadEntries {
-			downloadPath := fileops.GetCachePath(mochaDir, manifestRef.Name, manifestRef.Version, entry.URL)
-			filename := filepath.Base(downloadPath)
-
-			if _, err := os.Stat(downloadPath); err != nil || cmd.Force {
-				output.LogOutput(fmt.Sprintf("Downloading %s to %s", entry.URL, downloadPath))
-				if err := fileops.DownloadFile(entry.URL, downloadPath); err != nil {
-					return fmt.Errorf("failed to download %s: %w", filename, err)
-				}
-				output.LogOutput(fmt.Sprintf("Downloaded %s", filename))
-			} else {
-				output.LogOutput(fmt.Sprintf("Cache hit, skipping %s", filename))
-			}
-
-			if err := fileops.VerifyHash(downloadPath, entry.Hash); err != nil {
-				_ = os.Remove(downloadPath)
-				return fmt.Errorf("failed to verify %s: %w", filename, err)
-			}
-
-			output.LogOutput(fmt.Sprintf("Verified %s\n", filename))
-
-			if err := fileops.ExtractArchive(downloadPath, versionDir, entry.SubDir, mochaDir); err != nil {
-				return fmt.Errorf("failed to extract %s: %w", filepath.Base(downloadPath), err)
+		for _, result := range downloadResults {
+			if err := manifest.InstallManifestFile(result.DownloadPath, versionDir, result.Entry.SubDir, mochaDir); err != nil {
+				return fmt.Errorf("failed to extract %s: %w", result.Filename, err)
 			}
 		}
 
@@ -94,6 +59,7 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 		}
 
 		output.LogOutput(fmt.Sprintf("Installed %s", manifestRef.Name))
+
 	}
 
 	return nil

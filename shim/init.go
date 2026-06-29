@@ -31,7 +31,7 @@ func InitShimBinary(mochaDir string) error {
 		return fmt.Errorf("failed to check if shim.exe exists: %w", err)
 	}
 
-	arch, err := getCPUArch()
+	arch, err := getShimArch()
 	if err != nil {
 		return fmt.Errorf("failed to get cpu architecture: %w", err)
 	}
@@ -85,7 +85,7 @@ func InitShimBinary(mochaDir string) error {
 	return nil
 }
 
-func getCPUArch() (string, error) {
+func getShimArch() (string, error) {
 	switch runtime.GOARCH {
 	case "386":
 		return "x86", nil

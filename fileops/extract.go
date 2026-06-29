@@ -12,41 +12,7 @@ import (
 
 // TODO: consider more secure extractors: e.g. https://github.com/hashicorp/go-extract or force 7z to be installed
 
-func ExtractArchive(archivePath string, outputDir string, subDir string, mochaDir string) error {
-	extension := filepath.Ext(archivePath)
-	fileName := strings.TrimSuffix(filepath.Base(archivePath), extension)
-
-	tempDir := filepath.Join(mochaDir, "temp", fileName)
-	if err := os.MkdirAll(tempDir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", tempDir, err)
-	}
-	defer os.RemoveAll(filepath.Join(mochaDir, "temp"))
-
-	var extractionError error
-
-	switch extension {
-	case ".zip":
-		extractionError = ExtractZip(archivePath, tempDir)
-	case ".msi":
-		extractionError = extractMsi(archivePath, tempDir)
-	default:
-		return nil
-	}
-
-	if extractionError != nil {
-		return fmt.Errorf("failed to extract %s to %s: %w", archivePath, tempDir, extractionError)
-	}
-
-	extractedDir := filepath.Join(tempDir, subDir)
-
-	if err := mergeDir(extractedDir, outputDir); err != nil {
-		return fmt.Errorf("failed to merge %s into %s: %w", subDir, outputDir, err)
-	}
-
-	return nil
-}
-
-func extractMsi(msiPath string, outputDir string) error {
+func ExtractMsi(msiPath string, outputDir string) error {
 	cmd := exec.Command("msiexec.exe", "/a", msiPath, "/qn", fmt.Sprintf("TARGETDIR=%s", outputDir))
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to extract msi: %w", err)
@@ -123,28 +89,4 @@ func extractZipFile(file *zip.File, outputDir string) error {
 	}
 
 	return nil
-}
-
-func mergeDir(src string, dst string) error {
-	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		relativePath, err := filepath.Rel(src, path)
-		if err != nil {
-			return fmt.Errorf("failed to get relative path: %w", err)
-		}
-
-		dstPath := filepath.Join(dst, relativePath)
-
-		if info.IsDir() {
-			return os.MkdirAll(dstPath, info.Mode())
-		}
-
-		if err := os.Rename(path, dstPath); err != nil {
-			return fmt.Errorf("failed to move %s to %s: %w", path, dstPath, err)
-		}
-		return nil
-	})
 }
