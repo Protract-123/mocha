@@ -56,7 +56,7 @@ func InitShimBinary(mochaDir string) error {
 		return fmt.Errorf("failed to download %s: %w", zipName, err)
 	}
 
-	if err := fileops.ExtractFile(zipPath, tempDirectory); err != nil {
+	if err := fileops.ExtractZip(zipPath, tempDirectory); err != nil {
 		return fmt.Errorf("failed to extract %s: %w", zipName, err)
 	}
 

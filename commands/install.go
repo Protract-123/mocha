@@ -40,7 +40,10 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 			return fmt.Errorf("failed to get manifest downloads: %w", err)
 		}
 
-		var downloadPaths []string
+		versionDir := filepath.Join(mochaDir, "apps", manifestRef.Name, manifestRef.Version)
+		if err := os.MkdirAll(versionDir, os.ModePerm); err != nil {
+			return fmt.Errorf("failed to create directory %s: %w", versionDir, err)
+		}
 
 		for _, entry := range downloadEntries {
 			downloadPath := fileops.GetCachePath(mochaDir, manifestRef.Name, manifestRef.Version, entry.URL)
@@ -62,23 +65,13 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 			}
 
 			output.LogOutput(fmt.Sprintf("Verified %s\n", filename))
-			downloadPaths = append(downloadPaths, downloadPath)
-		}
 
-		appDir := filepath.Join(mochaDir, "apps", manifestRef.Name)
-		versionDir := filepath.Join(appDir, manifestRef.Version)
-		currentDir := filepath.Join(appDir, "current")
-
-		if err := os.MkdirAll(versionDir, os.ModePerm); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", versionDir, err)
-		}
-
-		for _, downloadPath := range downloadPaths {
-			if err := fileops.ExtractFile(downloadPath, versionDir); err != nil {
+			if err := fileops.ExtractArchive(downloadPath, versionDir, entry.SubDir, mochaDir); err != nil {
 				return fmt.Errorf("failed to extract %s: %w", filepath.Base(downloadPath), err)
 			}
 		}
 
+		currentDir := filepath.Join(mochaDir, "apps", manifestRef.Name, "current")
 		if err := os.Remove(currentDir); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("failed to remove old junction %s: %w", currentDir, err)
 		}
