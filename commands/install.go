@@ -30,9 +30,17 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 			return fmt.Errorf("failed to create directory %s: %w", versionDir, err)
 		}
 
+		innoSetup := manifest.GetManifestInnoSetup(manifestRef.ManifestPath)
+
 		for _, result := range downloadResults {
-			if err := manifest.InstallManifestFile(result.DownloadPath, versionDir, result.Entry.SubDir, mochaDir); err != nil {
-				return fmt.Errorf("failed to extract %s: %w", result.Filename, err)
+			installOptions := manifest.InstallOptions{
+				SubDir:       result.Entry.SubDir,
+				InnoSetup:    innoSetup,
+				RealFileName: result.RealFilename,
+			}
+
+			if err := manifest.InstallManifestFile(result.DownloadPath, versionDir, mochaDir, installOptions); err != nil {
+				return fmt.Errorf("failed to install %s: %w", result.Filename, err)
 			}
 		}
 

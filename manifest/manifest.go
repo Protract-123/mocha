@@ -71,6 +71,19 @@ func GetManifestBin(manifestPath string) ([]string, error) {
 	return extractStringOrArray(jsonData["bin"]), nil
 }
 
+func GetManifestInnoSetup(manifestPath string) bool {
+	jsonData, err := getManifestJson(manifestPath)
+	if err != nil {
+		return false
+	}
+
+	if val, ok := jsonData["innosetup"].(bool); ok {
+		return val
+	}
+
+	return false
+}
+
 func GetManifestVersion(manifestPath string) (string, error) {
 	jsonData, err := getManifestJson(manifestPath)
 	if err != nil {

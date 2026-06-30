@@ -2,7 +2,10 @@ package manifest
 
 import (
 	"fmt"
+	"io"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -15,6 +18,7 @@ type DownloadResult struct {
 	Entry        DownloadEntry
 	DownloadPath string
 	Filename     string
+	RealFilename string
 }
 
 func DownloadManifestFiles(refString string, force bool, mochaDir string) (*Ref, []DownloadResult, error) {
@@ -41,7 +45,10 @@ func DownloadManifestFiles(refString string, force bool, mochaDir string) (*Ref,
 	downloadResults := make([]DownloadResult, 0, len(downloadEntries))
 
 	for _, entry := range downloadEntries {
-		downloadPath := fileops.GetCachePath(mochaDir, manifestRef.Name, manifestRef.Version, entry.URL)
+		downloadPath, err := fileops.GetCachePath(mochaDir, manifestRef.Name, manifestRef.Version, entry.URL)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to get cache path: %w", err)
+		}
 		filename := filepath.Base(downloadPath)
 
 		if _, err := os.Stat(downloadPath); err != nil || force {
@@ -61,17 +68,34 @@ func DownloadManifestFiles(refString string, force bool, mochaDir string) (*Ref,
 
 		output.LogOutput(fmt.Sprintf("Verified %s\n", filename))
 
+		realFilename := path.Base(entry.URL)
+		if parsedURL, parseErr := url.Parse(entry.URL); parseErr == nil {
+			if strings.HasPrefix(parsedURL.Fragment, "/") {
+				realFilename = path.Base(parsedURL.Fragment)
+			} else {
+				realFilename = path.Base(parsedURL.Path)
+			}
+		}
+
 		downloadResults = append(downloadResults, DownloadResult{
 			Entry:        entry,
 			DownloadPath: downloadPath,
 			Filename:     filename,
+			RealFilename: realFilename,
 		})
 	}
 
 	return &manifestRef, downloadResults, nil
 }
 
-func InstallManifestFile(filePath string, installDir string, subDir string, mochaDir string) error {
+type InstallOptions struct {
+	SubDir string
+
+	InnoSetup    bool
+	RealFileName string
+}
+
+func InstallManifestFile(filePath string, installDir string, mochaDir string, options InstallOptions) error {
 	extension := filepath.Ext(filePath)
 	fileName := strings.TrimSuffix(filepath.Base(filePath), extension)
 
@@ -81,26 +105,40 @@ func InstallManifestFile(filePath string, installDir string, subDir string, moch
 	}
 	defer os.RemoveAll(filepath.Join(mochaDir, "temp"))
 
-	var extractionError error
-
 	switch extension {
 	case ".zip":
-		extractionError = fileops.ExtractZip(filePath, tempDir)
+		if err := fileops.ExtractZip(filePath, tempDir); err != nil {
+			return fmt.Errorf("failed to extract %s: %w", filePath, err)
+		}
 	case ".msi":
-		extractionError = fileops.ExtractMsi(filePath, tempDir)
+		if err := fileops.ExtractMsi(filePath, tempDir); err != nil {
+			return fmt.Errorf("failed to extract %s: %w", filePath, err)
+		}
+	case ".exe":
+		if !options.InnoSetup {
+			if options.RealFileName == "" {
+				return fmt.Errorf("missing real file name for %s", filePath)
+			}
+			targetFilePath := filepath.Join(tempDir, options.RealFileName)
+
+			if err := copyFile(filePath, targetFilePath); err != nil {
+				return fmt.Errorf("failed to move %s: %w", targetFilePath, err)
+			}
+		} else {
+			if err := fileops.ExtractInnoSetup(filePath, tempDir, options.SubDir); err != nil {
+				return fmt.Errorf("failed to extract InnoSetup from %s: %w", filePath, err)
+			}
+			options.SubDir = ""
+		}
 	default:
-		// 7zip extract by default
-		return nil
+		if err := fileops.Extract7z(filePath, tempDir); err != nil {
+			return fmt.Errorf("failed to extract %s: %w", filePath, err)
+		}
 	}
 
-	if extractionError != nil {
-		return fmt.Errorf("failed to extract %s to %s: %w", filePath, tempDir, extractionError)
-	}
-
-	extractedDir := filepath.Join(tempDir, subDir)
-
+	extractedDir := filepath.Join(tempDir, options.SubDir)
 	if err := mergeDir(extractedDir, installDir); err != nil {
-		return fmt.Errorf("failed to merge %s into %s: %w", subDir, installDir, err)
+		return fmt.Errorf("failed to merge %s into %s: %w", extractedDir, installDir, err)
 	}
 
 	return nil
@@ -128,6 +166,30 @@ func mergeDir(src string, dst string) error {
 		}
 		return nil
 	})
+}
+
+func copyFile(src string, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open file %s: %w", src, err)
+	}
+	defer srcFile.Close()
+
+	targetFile, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("failed to create file %s: %w", dst, err)
+	}
+	defer targetFile.Close()
+
+	if _, err := io.Copy(targetFile, srcFile); err != nil {
+		return fmt.Errorf("failed to copy file %s: %w", dst, err)
+	}
+
+	if err := targetFile.Sync(); err != nil {
+		return fmt.Errorf("failed to write file %s: %w", dst, err)
+	}
+
+	return nil
 }
 
 func GetDownloadArch() (string, error) {
