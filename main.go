@@ -14,15 +14,16 @@ import (
 var args struct {
 	MochaDirectory string `arg:"--,env:MOCHA_DIR" default:"$USERPROFILE/mocha"`
 
-	BucketCommand   *commands.BucketCommand   `arg:"subcommand:bucket"`
-	CacheCommand    *commands.CacheCommand    `arg:"subcommand:cache"`
-	CatCommand      *commands.CatCommand      `arg:"subcommand:cat"`
-	ConfigCommand   *commands.ConfigCommand   `arg:"subcommand:config"`
-	DownloadCommand *commands.DownloadCommand `arg:"subcommand:download"`
-	InstallCommand  *commands.InstallCommand  `arg:"subcommand:install"`
-	SearchCommand   *commands.SearchCommand   `arg:"subcommand:search"`
-	ShimCommand     *commands.ShimCommand     `arg:"subcommand:shim"`
-	UpdateCommand   *commands.UpdateCommand   `arg:"subcommand:update"`
+	BucketCommand    *commands.BucketCommand    `arg:"subcommand:bucket"`
+	CacheCommand     *commands.CacheCommand     `arg:"subcommand:cache"`
+	CatCommand       *commands.CatCommand       `arg:"subcommand:cat"`
+	ConfigCommand    *commands.ConfigCommand    `arg:"subcommand:config"`
+	DownloadCommand  *commands.DownloadCommand  `arg:"subcommand:download"`
+	InstallCommand   *commands.InstallCommand   `arg:"subcommand:install"`
+	SearchCommand    *commands.SearchCommand    `arg:"subcommand:search"`
+	ShimCommand      *commands.ShimCommand      `arg:"subcommand:shim"`
+	UninstallCommand *commands.UninstallCommand `arg:"subcommand:uninstall"`
+	UpdateCommand    *commands.UpdateCommand    `arg:"subcommand:update"`
 }
 
 func main() {
@@ -66,6 +67,8 @@ func run() error {
 		return args.SearchCommand.Run(mochaDirectory)
 	case args.ShimCommand != nil:
 		return args.ShimCommand.Run(mochaDirectory)
+	case args.UninstallCommand != nil:
+		return args.UninstallCommand.Run(mochaDirectory)
 	case args.UpdateCommand != nil:
 		return args.UpdateCommand.Run(mochaDirectory)
 	}
