@@ -1,12 +1,15 @@
 package bucket
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type Metadata struct {
@@ -17,32 +20,44 @@ type Metadata struct {
 }
 
 func GetAllBucketMetadata(mochaDir string) ([]Metadata, error) {
-	buckets, err := os.ReadDir(filepath.Join(mochaDir, "buckets"))
+	dirs, err := os.ReadDir(filepath.Join(mochaDir, "buckets"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all buckets: %w", err)
 	}
 
-	bucketMetadata := make([]Metadata, 0, len(buckets))
-	for _, bucket := range buckets {
-		if !bucket.IsDir() {
-			continue
+	var buckets []os.DirEntry
+	for _, bucket := range dirs {
+		if bucket.IsDir() {
+			buckets = append(buckets, bucket)
 		}
+	}
 
-		metadata, err := GetBucketMetadata(mochaDir, bucket.Name())
-		if err != nil {
-			return nil, fmt.Errorf("failed to get metadata for bucket %q: %w", bucket.Name(), err)
-		}
+	group, ctx := errgroup.WithContext(context.Background())
+	bucketMetadata := make([]Metadata, len(buckets))
 
-		bucketMetadata = append(bucketMetadata, metadata)
+	for index, bucket := range buckets {
+		group.Go(func() error {
+			metadata, err := GetBucketMetadata(mochaDir, bucket.Name(), ctx)
+			if err != nil {
+				return fmt.Errorf("failed to get metadata for bucket %q: %w", bucket.Name(), err)
+			}
+
+			bucketMetadata[index] = metadata
+			return nil
+		})
+	}
+
+	if err := group.Wait(); err != nil {
+		return nil, err
 	}
 
 	return bucketMetadata, nil
 }
 
-func GetBucketMetadata(mochaDir string, bucketName string) (Metadata, error) {
+func GetBucketMetadata(mochaDir string, bucketName string, ctx context.Context) (Metadata, error) {
 	bucketPath := filepath.Join(mochaDir, "buckets", bucketName)
 
-	sourceCmd := exec.Command("git", "config", "remote.origin.url")
+	sourceCmd := exec.CommandContext(ctx, "git", "config", "remote.origin.url")
 	sourceCmd.Dir = bucketPath
 	sourceOut, err := sourceCmd.Output()
 	if err != nil {
@@ -50,14 +65,14 @@ func GetBucketMetadata(mochaDir string, bucketName string) (Metadata, error) {
 	}
 	bucketSource := strings.TrimSpace(string(sourceOut))
 
-	updatedCmd := exec.Command("git", "log", "--format=%aD", "-n", "1")
+	updatedCmd := exec.CommandContext(ctx, "git", "log", "--format=%aI", "-n", "1")
 	updatedCmd.Dir = bucketPath
 	updatedOut, err := updatedCmd.Output()
 	if err != nil {
 		return Metadata{}, fmt.Errorf("failed to get last update date: %w", err)
 	}
 
-	bucketLastUpdated, err := time.Parse(time.RFC1123Z, strings.TrimSpace(string(updatedOut)))
+	bucketLastUpdated, err := time.Parse(time.RFC3339, strings.TrimSpace(string(updatedOut)))
 	if err != nil {
 		return Metadata{}, fmt.Errorf("failed to parse last update date: %w", err)
 	}
