@@ -11,7 +11,7 @@ import (
 )
 
 type UninstallCommand struct {
-	ManifestReferences []string `arg:"positional,required"`
+	ManifestReferences []string `arg:"positional,required" help:"manifest references to uninstall; omit @version to remove all installed versions (e.g. git, bat@0.26.1)"`
 }
 
 func (cmd *UninstallCommand) Run(mochaDir string) error {

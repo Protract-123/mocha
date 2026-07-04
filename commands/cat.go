@@ -11,7 +11,7 @@ import (
 )
 
 type CatCommand struct {
-	ManifestReferences []string `arg:"positional,required"`
+	ManifestReferences []string `arg:"positional,required" help:"manifest references to show (e.g. git, bat@0.26.1)"`
 }
 
 func (cmd *CatCommand) Run(mochaDir string, config config.CatConfig) error {

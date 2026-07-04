@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,20 +12,24 @@ import (
 	"github.com/alexflint/go-arg"
 )
 
-var args struct {
-	MochaDirectory string `arg:"--,env:MOCHA_DIR" default:"$USERPROFILE/mocha"`
+type arguments struct {
+	MochaDirectory string `arg:"--,env:MOCHA_DIR" default:"$USERPROFILE/mocha" help:"directory where mocha stores buckets, apps, shims, and cache"`
 
-	BucketCommand    *commands.BucketCommand    `arg:"subcommand:bucket"`
-	CacheCommand     *commands.CacheCommand     `arg:"subcommand:cache"`
-	CatCommand       *commands.CatCommand       `arg:"subcommand:cat"`
-	ConfigCommand    *commands.ConfigCommand    `arg:"subcommand:config"`
-	DownloadCommand  *commands.DownloadCommand  `arg:"subcommand:download"`
-	InstallCommand   *commands.InstallCommand   `arg:"subcommand:install"`
-	ListCommand      *commands.ListCommand      `arg:"subcommand:list"`
-	SearchCommand    *commands.SearchCommand    `arg:"subcommand:search"`
-	ShimCommand      *commands.ShimCommand      `arg:"subcommand:shim"`
-	UninstallCommand *commands.UninstallCommand `arg:"subcommand:uninstall"`
-	UpdateCommand    *commands.UpdateCommand    `arg:"subcommand:update"`
+	BucketCommand    *commands.BucketCommand    `arg:"subcommand:bucket" help:"manage mocha buckets"`
+	CacheCommand     *commands.CacheCommand     `arg:"subcommand:cache" help:"show or clear download cache"`
+	CatCommand       *commands.CatCommand       `arg:"subcommand:cat" help:"show an app's manifest"`
+	ConfigCommand    *commands.ConfigCommand    `arg:"subcommand:config" help:"edit the config file"`
+	DownloadCommand  *commands.DownloadCommand  `arg:"subcommand:download" help:"download and verify an app's files"`
+	InstallCommand   *commands.InstallCommand   `arg:"subcommand:install" help:"install apps"`
+	ListCommand      *commands.ListCommand      `arg:"subcommand:list" help:"list installed apps"`
+	SearchCommand    *commands.SearchCommand    `arg:"subcommand:search" help:"search for an app in buckets"`
+	ShimCommand      *commands.ShimCommand      `arg:"subcommand:shim" help:"manage mocha shims"`
+	UninstallCommand *commands.UninstallCommand `arg:"subcommand:uninstall" help:"uninstall apps"`
+	UpdateCommand    *commands.UpdateCommand    `arg:"subcommand:update" help:"update mocha buckets"`
+}
+
+func (arguments) Version() string {
+	return "mocha v0.0.1"
 }
 
 func main() {
@@ -35,7 +40,8 @@ func main() {
 }
 
 func run() error {
-	arg.MustParse(&args)
+	var args arguments
+	parser := arg.MustParse(&args)
 
 	mochaDirectory := os.ExpandEnv(args.MochaDirectory)
 	if !filepath.IsAbs(mochaDirectory) {
@@ -51,29 +57,38 @@ func run() error {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
+	var executionError error
+
 	switch {
 	case args.BucketCommand != nil:
-		return args.BucketCommand.Run(mochaDirectory)
+		executionError = args.BucketCommand.Run(mochaDirectory)
 	case args.CacheCommand != nil:
-		return args.CacheCommand.Run(mochaDirectory)
+		executionError = args.CacheCommand.Run(mochaDirectory)
 	case args.CatCommand != nil:
-		return args.CatCommand.Run(mochaDirectory, configuration.CatConfiguration)
+		executionError = args.CatCommand.Run(mochaDirectory, configuration.CatConfiguration)
 	case args.ConfigCommand != nil:
-		return args.ConfigCommand.Run(mochaDirectory)
+		executionError = args.ConfigCommand.Run(mochaDirectory)
 	case args.DownloadCommand != nil:
-		return args.DownloadCommand.Run(mochaDirectory)
+		executionError = args.DownloadCommand.Run(mochaDirectory)
 	case args.InstallCommand != nil:
-		return args.InstallCommand.Run(mochaDirectory)
+		executionError = args.InstallCommand.Run(mochaDirectory)
 	case args.ListCommand != nil:
-		return args.ListCommand.Run(mochaDirectory)
+		executionError = args.ListCommand.Run(mochaDirectory)
 	case args.SearchCommand != nil:
-		return args.SearchCommand.Run(mochaDirectory)
+		executionError = args.SearchCommand.Run(mochaDirectory)
 	case args.ShimCommand != nil:
-		return args.ShimCommand.Run(mochaDirectory)
+		executionError = args.ShimCommand.Run(mochaDirectory)
 	case args.UninstallCommand != nil:
-		return args.UninstallCommand.Run(mochaDirectory)
+		executionError = args.UninstallCommand.Run(mochaDirectory)
 	case args.UpdateCommand != nil:
-		return args.UpdateCommand.Run(mochaDirectory)
+		executionError = args.UpdateCommand.Run(mochaDirectory)
+	default:
+		executionError = arg.ErrHelp
 	}
-	return nil
+
+	if errors.Is(executionError, arg.ErrHelp) {
+		parser.WriteHelp(os.Stderr)
+		return nil
+	}
+	return executionError
 }

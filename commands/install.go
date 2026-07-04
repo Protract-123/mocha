@@ -14,8 +14,8 @@ import (
 )
 
 type InstallCommand struct {
-	ManifestReferences []string `arg:"positional,required"`
-	Force              bool     `arg:"-f,--force"`
+	ManifestReferences []string `arg:"positional,required" help:"manifest references to install (e.g. git, bat@0.26.1)"`
+	Force              bool     `arg:"-f,--force" help:"ignore cache hits"`
 }
 
 func (cmd *InstallCommand) Run(mochaDir string) error {

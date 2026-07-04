@@ -9,8 +9,8 @@ import (
 // TODO: add more/better logging, like a progress bar
 
 type DownloadCommand struct {
-	ManifestReferences []string `arg:"positional,required"`
-	Force              bool     `arg:"-f,--force"`
+	ManifestReferences []string `arg:"positional,required" help:"manifest references to download (e.g. git, bat@0.26.1)"`
+	Force              bool     `arg:"-f,--force" help:"ignore cache hits"`
 }
 
 func (cmd *DownloadCommand) Run(mochaDir string) error {

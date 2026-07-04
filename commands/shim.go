@@ -8,20 +8,21 @@ import (
 
 	"github.com/Protract-123/mocha/output"
 	"github.com/Protract-123/mocha/shim"
+	"github.com/alexflint/go-arg"
 )
 
 type ShimCommand struct {
-	Add    *addShimCommand    `arg:"subcommand:add"`
-	Remove *removeShimCommand `arg:"subcommand:remove"`
-	List   *listShimCommand   `arg:"subcommand:list"`
+	Add    *addShimCommand    `arg:"subcommand:add" help:"add a shim"`
+	Remove *removeShimCommand `arg:"subcommand:remove" help:"remove an existing shim"`
+	List   *listShimCommand   `arg:"subcommand:list" help:"list added shims"`
 }
 
 type addShimCommand struct {
-	Name string `arg:"positional,required"`
-	Path string `arg:"positional,required"`
+	Name string `arg:"positional,required" help:"name for the shim (e.g. mybinary)"`
+	Path string `arg:"positional,required" help:"path to the executable, or a name resolvable on PATH (e.g. C:/path/to/app.exe or notepad)"`
 }
 type removeShimCommand struct {
-	Name string `arg:"positional,required"`
+	Name string `arg:"positional,required" help:"name of the shim to remove"`
 }
 type listShimCommand struct{}
 
@@ -33,8 +34,9 @@ func (cmd *ShimCommand) Run(mochaDir string) error {
 		return cmd.Remove.Run(mochaDir)
 	case cmd.List != nil:
 		return cmd.List.Run(mochaDir)
+	default:
+		return arg.ErrHelp
 	}
-	return nil
 }
 
 func (cmd *addShimCommand) Run(mochaDir string) error {

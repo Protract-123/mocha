@@ -8,16 +8,17 @@ import (
 	"github.com/Protract-123/mocha/fileops"
 	"github.com/Protract-123/mocha/manifest"
 	"github.com/Protract-123/mocha/output"
+	"github.com/alexflint/go-arg"
 )
 
 type CacheCommand struct {
-	List  *listCacheCommand  `arg:"subcommand:list"`
-	Clear *clearCacheCommand `arg:"subcommand:clear"`
+	List  *listCacheCommand  `arg:"subcommand:list" help:"list all cached downloads"`
+	Clear *clearCacheCommand `arg:"subcommand:clear" help:"clear download cache"`
 }
 
 type listCacheCommand struct{}
 type clearCacheCommand struct {
-	ManifestReferences []string `arg:"positional"`
+	ManifestReferences []string `arg:"positional" help:"cached downloads to remove; clears the entire cache if omitted (e.g. git, bat@0.26.1)"`
 }
 
 func (cmd *CacheCommand) Run(mochaDir string) error {
@@ -26,8 +27,9 @@ func (cmd *CacheCommand) Run(mochaDir string) error {
 		return cmd.List.Run(mochaDir)
 	case cmd.Clear != nil:
 		return cmd.Clear.Run(mochaDir)
+	default:
+		return arg.ErrHelp
 	}
-	return nil
 }
 
 func (cmd *listCacheCommand) Run(mochaDir string) error {

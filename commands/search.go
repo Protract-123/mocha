@@ -12,8 +12,8 @@ import (
 )
 
 type SearchCommand struct {
-	Query string `arg:"positional,required"`
-	Count int    `default:"20" arg:"-c, --count"`
+	Query string `arg:"positional,required" help:"app name to search for"`
+	Count int    `default:"20" arg:"-c, --count" help:"max number of fuzzy results to show"`
 }
 
 func (cmd *SearchCommand) Run(mochaDir string) error {

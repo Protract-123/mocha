@@ -7,7 +7,7 @@ import (
 )
 
 type UpdateCommand struct {
-	Buckets []string `arg:"positional"`
+	Buckets []string `arg:"positional" help:"buckets to update; updates all buckets if omitted (e.g. main)"`
 }
 
 func (cmd *UpdateCommand) Run(mochaDir string) error {

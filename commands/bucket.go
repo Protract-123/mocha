@@ -8,23 +8,24 @@ import (
 
 	"github.com/Protract-123/mocha/bucket"
 	"github.com/Protract-123/mocha/output"
+	"github.com/alexflint/go-arg"
 )
 
 type BucketCommand struct {
-	Add   *addBucketCommand    `arg:"subcommand:add"`
-	Known *knownBucketsCommand `arg:"subcommand:known"`
-	Rm    *removeBucketCommand `arg:"subcommand:rm"`
-	List  *listBucketsCommand  `arg:"subcommand:list"`
+	Add   *addBucketCommand    `arg:"subcommand:add" help:"add a bucket by name or git repository URL"`
+	Known *knownBucketsCommand `arg:"subcommand:known" help:"list known buckets available to add by name"`
+	Rm    *removeBucketCommand `arg:"subcommand:rm" help:"remove an installed bucket"`
+	List  *listBucketsCommand  `arg:"subcommand:list" help:"list installed buckets"`
 }
 
 type listBucketsCommand struct{}
 type knownBucketsCommand struct{}
 type removeBucketCommand struct {
-	Name string `arg:"positional,required"`
+	Name string `arg:"positional,required" help:"bucket name (e.g. main)"`
 }
 type addBucketCommand struct {
-	Name          string   `arg:"positional,required"`
-	RepositoryURL *url.URL `arg:"positional"`
+	Name          string   `arg:"positional,required" help:"bucket name (e.g. main)"`
+	RepositoryURL *url.URL `arg:"positional" help:"git repository URL for the bucket; omit to use a known bucket (see 'mocha bucket known')"`
 }
 
 func (cmd *BucketCommand) Run(mochaDir string) error {
@@ -37,8 +38,9 @@ func (cmd *BucketCommand) Run(mochaDir string) error {
 		return cmd.Rm.Run(mochaDir)
 	case cmd.List != nil:
 		return cmd.List.Run(mochaDir)
+	default:
+		return arg.ErrHelp
 	}
-	return nil
 }
 
 func (cmd *listBucketsCommand) Run(mochaDir string) error {
