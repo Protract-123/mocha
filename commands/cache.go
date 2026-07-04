@@ -12,19 +12,20 @@ import (
 )
 
 type CacheCommand struct {
-	List  *listCacheCommand  `arg:"subcommand:list" help:"list all cached downloads"`
-	Clear *clearCacheCommand `arg:"subcommand:clear" help:"clear download cache"`
+	Show  *showCacheCommand  `arg:"subcommand:show" help:"show all cache items"`
+	Clear *clearCacheCommand `arg:"subcommand:clear" help:"clear cache items"`
 }
 
-type listCacheCommand struct{}
+type showCacheCommand struct{}
 type clearCacheCommand struct {
-	ManifestReferences []string `arg:"positional" help:"cached downloads to remove; clears the entire cache if omitted (e.g. git, bat@0.26.1)"`
+	Items []string `arg:"positional" help:"cache items to remove (e.g. git, bat@0.26.1)"`
+	All   bool     `arg:"-a,--all" help:"clear all cache items"`
 }
 
 func (cmd *CacheCommand) Run(mochaDir string) error {
 	switch {
-	case cmd.List != nil:
-		return cmd.List.Run(mochaDir)
+	case cmd.Show != nil:
+		return cmd.Show.Run(mochaDir)
 	case cmd.Clear != nil:
 		return cmd.Clear.Run(mochaDir)
 	default:
@@ -32,37 +33,44 @@ func (cmd *CacheCommand) Run(mochaDir string) error {
 	}
 }
 
-func (cmd *listCacheCommand) Run(mochaDir string) error {
-	rawCacheItems, err := fileops.GetCacheItems(mochaDir)
+func (cmd *showCacheCommand) Run(mochaDir string) error {
+	cacheItems, err := fileops.GetCacheItems(mochaDir)
 	if err != nil {
 		return fmt.Errorf("failed to get cache items: %w", err)
 	}
 
-	if len(rawCacheItems) == 0 {
-		return fmt.Errorf("no cache items found")
+	if len(cacheItems) == 0 {
+		output.LogOutput("no cache items to show")
+		return nil
 	}
 
-	type cacheItemKey struct{ name, version string }
-	cacheItems := make(map[cacheItemKey]*fileops.CacheItem)
-	var cacheItemOrder []cacheItemKey
+	type cacheItemKey struct {
+		name    string
+		version string
+	}
 
-	for _, item := range rawCacheItems {
-		key := cacheItemKey{item.Name, item.Version}
-		if existing, ok := cacheItems[key]; ok {
-			existing.Size += item.Size
-		} else {
-			cacheItems[key] = &item
-			cacheItemOrder = append(cacheItemOrder, key)
+	var cacheGroupOrder []cacheItemKey
+	groupedCacheItems := make(map[cacheItemKey]*fileops.CacheItem)
+
+	for _, cacheItem := range cacheItems {
+		key := cacheItemKey{cacheItem.Name, cacheItem.Version}
+
+		if existing, ok := groupedCacheItems[key]; ok {
+			existing.Size += cacheItem.Size
+			continue
 		}
+
+		groupedCacheItems[key] = &cacheItem
+		cacheGroupOrder = append(cacheGroupOrder, key)
 	}
 
 	headers := []string{"Name", "Version", "Size"}
-	rows := make([][]string, len(cacheItems))
+	rows := make([][]string, len(groupedCacheItems))
 
 	var totalBytes int64
 
-	for i, key := range cacheItemOrder {
-		item := cacheItems[key]
+	for i, key := range cacheGroupOrder {
+		item := groupedCacheItems[key]
 		rows[i] = []string{
 			item.Name,
 			item.Version,
@@ -98,12 +106,16 @@ func convertToHumanReadable(bytes int64) string {
 }
 
 func (cmd *clearCacheCommand) Run(mochaDir string) error {
+	if len(cmd.Items) == 0 && !cmd.All {
+		return arg.ErrHelp
+	}
+
 	cacheItems, err := fileops.GetCacheItems(mochaDir)
 	if err != nil {
 		return fmt.Errorf("failed to get cache items: %w", err)
 	}
 
-	if len(cmd.ManifestReferences) == 0 {
+	if len(cmd.Items) == 0 && cmd.All {
 		for _, cacheItem := range cacheItems {
 			if err := os.Remove(cacheItem.Path); err != nil {
 				return fmt.Errorf("failed to remove cache item %q: %w", cacheItem.Path, err)
@@ -113,18 +125,18 @@ func (cmd *clearCacheCommand) Run(mochaDir string) error {
 		return nil
 	}
 
-	for _, refString := range cmd.ManifestReferences {
-		manifestRef, err := manifest.ParseRefString(refString)
+	for _, refString := range cmd.Items {
+		cacheRef, err := manifest.ParseRefString(refString)
 		if err != nil {
-			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
+			return fmt.Errorf("failed to parse cache item %q: %w", refString, err)
 		}
 
 		for _, cacheItem := range cacheItems {
-			if manifestRef.Name != cacheItem.Name && manifestRef.Name != "" {
+			if cacheRef.Name != cacheItem.Name && cacheRef.Name != "" {
 				continue
 			}
 
-			if manifestRef.Version != cacheItem.Version && manifestRef.Version != "" {
+			if cacheRef.Version != cacheItem.Version && cacheRef.Version != "" {
 				continue
 			}
 

@@ -16,7 +16,7 @@ type arguments struct {
 	MochaDirectory string `arg:"--,env:MOCHA_DIR" default:"$USERPROFILE/mocha" help:"directory where mocha stores buckets, apps, shims, and cache"`
 
 	BucketCommand    *commands.BucketCommand    `arg:"subcommand:bucket" help:"manage mocha buckets"`
-	CacheCommand     *commands.CacheCommand     `arg:"subcommand:cache" help:"show or clear download cache"`
+	CacheCommand     *commands.CacheCommand     `arg:"subcommand:cache" help:"manage cache items"`
 	CatCommand       *commands.CatCommand       `arg:"subcommand:cat" help:"show an app's manifest"`
 	ConfigCommand    *commands.ConfigCommand    `arg:"subcommand:config" help:"edit the config file"`
 	DownloadCommand  *commands.DownloadCommand  `arg:"subcommand:download" help:"download and verify an app's files"`
