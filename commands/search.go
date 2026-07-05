@@ -35,7 +35,7 @@ func (cmd *SearchCommand) Run(mochaDir string) error {
 
 		manifests, err := os.ReadDir(filepath.Join(bucketsDir, bucket.Name(), "bucket"))
 		if err != nil {
-			return fmt.Errorf("failed to read %s's manifest directory: %w", bucket.Name(), err)
+			return fmt.Errorf("failed to read manifest directory of %s: %w", bucket.Name(), err)
 		}
 
 		for _, entry := range manifests {
@@ -93,7 +93,7 @@ func outputResults(matches []string, mochaDir string) error {
 
 		manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
 		if err != nil {
-			return fmt.Errorf("failed to get %q manifest details: %w", result, err)
+			return fmt.Errorf("failed to get manifest details for %q: %w", result, err)
 		}
 
 		rows[index] = []string{manifestRef.Name, manifestRef.Bucket, manifestRef.Version}

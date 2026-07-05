@@ -15,7 +15,7 @@ func (cmd *ListCommand) Run(mochaDir string) error {
 	appDir := filepath.Join(mochaDir, "apps")
 	apps, err := os.ReadDir(appDir)
 	if err != nil {
-		return fmt.Errorf("failed to read apps directory: %s", err)
+		return fmt.Errorf("failed to read apps directory: %w", err)
 	}
 
 	headers := []string{"Name", "Version", "Bucket"}
@@ -24,7 +24,7 @@ func (cmd *ListCommand) Run(mochaDir string) error {
 	for _, app := range apps {
 		versions, err := os.ReadDir(filepath.Join(appDir, app.Name()))
 		if err != nil {
-			return fmt.Errorf("failed to read %q directory: %s", app.Name(), err)
+			return fmt.Errorf("failed to read directory %q: %w", app.Name(), err)
 		}
 
 		for _, version := range versions {
@@ -41,7 +41,7 @@ func (cmd *ListCommand) Run(mochaDir string) error {
 
 			ref, err := manifest.PopulateRef(ref, mochaDir)
 			if err != nil {
-				return fmt.Errorf("failed to fetch app details %q: %w", app.Name(), err)
+				return fmt.Errorf("failed to fetch app details for %q: %w", app.Name(), err)
 			}
 
 			rows = append(rows, []string{ref.Name, ref.Version, ref.Bucket})

@@ -11,11 +11,11 @@ import (
 )
 
 type CatCommand struct {
-	ManifestReferences []string `arg:"positional,required" help:"manifest references to show (e.g. git, bat@0.26.1)"`
+	Manifests []string `arg:"positional,required" help:"manifests to show (e.g. git, zed)"`
 }
 
 func (cmd *CatCommand) Run(mochaDir string, config config.CatConfig) error {
-	for _, refString := range cmd.ManifestReferences {
+	for _, refString := range cmd.Manifests {
 		manifestRef, err := manifest.ParseRefString(refString)
 		if err != nil {
 			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
@@ -23,7 +23,7 @@ func (cmd *CatCommand) Run(mochaDir string, config config.CatConfig) error {
 
 		manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
 		if err != nil {
-			return fmt.Errorf("failed to get %q manifest details: %w", refString, err)
+			return fmt.Errorf("failed to get manifest details for %q: %w", refString, err)
 		}
 
 		if config.Command == "" {

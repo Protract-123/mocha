@@ -14,15 +14,15 @@ import (
 )
 
 type InstallCommand struct {
-	ManifestReferences []string `arg:"positional,required" help:"manifest references to install (e.g. git, bat@0.26.1)"`
-	Force              bool     `arg:"-f,--force" help:"ignore cache hits"`
+	Apps  []string `arg:"positional,required" help:"apps to install (e.g. git, bat@0.26.1)"`
+	Force bool     `arg:"-f,--force" help:"ignore cache hits"`
 }
 
 func (cmd *InstallCommand) Run(mochaDir string) error {
-	for _, refString := range cmd.ManifestReferences {
+	for _, refString := range cmd.Apps {
 		manifestRef, downloadResults, err := manifest.DownloadManifestFiles(refString, cmd.Force, mochaDir)
 		if err != nil {
-			return fmt.Errorf("error downloading manifest files: %w", err)
+			return fmt.Errorf("failed to download manifest files: %w", err)
 		}
 
 		versionDir := filepath.Join(mochaDir, "apps", manifestRef.Name, manifestRef.Version)
@@ -67,7 +67,6 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 		}
 
 		output.LogOutput(fmt.Sprintf("Installed %s", manifestRef.Name))
-
 	}
 
 	return nil

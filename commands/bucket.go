@@ -12,10 +12,10 @@ import (
 )
 
 type BucketCommand struct {
-	Add   *addBucketCommand    `arg:"subcommand:add" help:"add a bucket by name or git repository URL"`
-	Known *knownBucketsCommand `arg:"subcommand:known" help:"list known buckets available to add by name"`
-	Rm    *removeBucketCommand `arg:"subcommand:rm" help:"remove an installed bucket"`
-	List  *listBucketsCommand  `arg:"subcommand:list" help:"list installed buckets"`
+	Add    *addBucketCommand    `arg:"subcommand:add" help:"add a bucket by name or git repository URL"`
+	Known  *knownBucketsCommand `arg:"subcommand:known" help:"list known buckets available to add by name"`
+	Remove *removeBucketCommand `arg:"subcommand:remove" help:"remove an installed bucket"`
+	List   *listBucketsCommand  `arg:"subcommand:list" help:"list installed buckets"`
 }
 
 type listBucketsCommand struct{}
@@ -24,8 +24,8 @@ type removeBucketCommand struct {
 	Name string `arg:"positional,required" help:"bucket name (e.g. main)"`
 }
 type addBucketCommand struct {
-	Name          string   `arg:"positional,required" help:"bucket name (e.g. main)"`
-	RepositoryURL *url.URL `arg:"positional" help:"git repository URL for the bucket; omit to use a known bucket (see 'mocha bucket known')"`
+	Name string   `arg:"positional,required" help:"bucket name (e.g. main)"`
+	URL  *url.URL `arg:"positional" help:"git repository URL for the bucket; omit to use a known bucket"`
 }
 
 func (cmd *BucketCommand) Run(mochaDir string) error {
@@ -34,8 +34,8 @@ func (cmd *BucketCommand) Run(mochaDir string) error {
 		return cmd.Add.Run(mochaDir)
 	case cmd.Known != nil:
 		return cmd.Known.Run(mochaDir)
-	case cmd.Rm != nil:
-		return cmd.Rm.Run(mochaDir)
+	case cmd.Remove != nil:
+		return cmd.Remove.Run(mochaDir)
 	case cmd.List != nil:
 		return cmd.List.Run(mochaDir)
 	default:
@@ -50,7 +50,8 @@ func (cmd *listBucketsCommand) Run(mochaDir string) error {
 	}
 
 	if len(bucketMetadata) == 0 {
-		return fmt.Errorf("no bucket metadata found")
+		output.LogOutput("no buckets to show")
+		return nil
 	}
 
 	headers := []string{"Name", "Source", "Updated", "Manifests"}
@@ -100,20 +101,20 @@ func (cmd *addBucketCommand) Run(mochaDir string) error {
 
 	var identifiedBucket bucket.Bucket
 
-	if cmd.RepositoryURL == nil {
+	if cmd.URL == nil {
 		knownBucket, err := bucket.GetKnownBucket(cmd.Name, mochaDir)
 		if err != nil {
 			return fmt.Errorf("failed to get known bucket: %w", err)
 		}
 		identifiedBucket = knownBucket
 	} else {
-		if (cmd.RepositoryURL.Scheme != "http" && cmd.RepositoryURL.Scheme != "https") || cmd.RepositoryURL.Host == "" {
-			return fmt.Errorf("invalid repository URL %q provided for bucket %q", cmd.RepositoryURL.String(), cmd.Name)
+		if (cmd.URL.Scheme != "http" && cmd.URL.Scheme != "https") || cmd.URL.Host == "" {
+			return fmt.Errorf("invalid repository URL %q", cmd.URL.String())
 		}
 
 		identifiedBucket = bucket.Bucket{
 			Name:   cmd.Name,
-			Source: cmd.RepositoryURL.String(),
+			Source: cmd.URL.String(),
 		}
 	}
 

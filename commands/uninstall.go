@@ -11,11 +11,11 @@ import (
 )
 
 type UninstallCommand struct {
-	ManifestReferences []string `arg:"positional,required" help:"manifest references to uninstall; omit @version to remove all installed versions (e.g. git, bat@0.26.1)"`
+	Apps []string `arg:"positional,required" help:"apps to uninstall; omit @version to remove all installed versions (e.g. git, bat@0.26.1)"`
 }
 
 func (cmd *UninstallCommand) Run(mochaDir string) error {
-	for _, refString := range cmd.ManifestReferences {
+	for _, refString := range cmd.Apps {
 		manifestRef, err := manifest.ParseRefString(refString)
 		if err != nil {
 			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)

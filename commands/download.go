@@ -9,14 +9,14 @@ import (
 // TODO: add more/better logging, like a progress bar
 
 type DownloadCommand struct {
-	ManifestReferences []string `arg:"positional,required" help:"manifest references to download (e.g. git, bat@0.26.1)"`
-	Force              bool     `arg:"-f,--force" help:"ignore cache hits"`
+	Apps  []string `arg:"positional,required" help:"apps to download (e.g. git, bat@0.26.1)"`
+	Force bool     `arg:"-f,--force" help:"ignore cache hits"`
 }
 
 func (cmd *DownloadCommand) Run(mochaDir string) error {
-	for _, refString := range cmd.ManifestReferences {
+	for _, refString := range cmd.Apps {
 		if _, _, err := manifest.DownloadManifestFiles(refString, cmd.Force, mochaDir); err != nil {
-			return fmt.Errorf("error downloading manifest files: %w", err)
+			return fmt.Errorf("failed to download manifest files: %w", err)
 		}
 	}
 	return nil

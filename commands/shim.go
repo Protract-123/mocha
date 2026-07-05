@@ -18,8 +18,8 @@ type ShimCommand struct {
 }
 
 type addShimCommand struct {
-	Name string `arg:"positional,required" help:"name for the shim (e.g. mybinary)"`
-	Path string `arg:"positional,required" help:"path to the executable, or a name resolvable on PATH (e.g. C:/path/to/app.exe or notepad)"`
+	Name string `arg:"positional,required" help:"name for the shim (e.g. bat)"`
+	Path string `arg:"positional,required" help:"path to the executable, or a name resolvable on PATH (e.g. C:/path/to/bat.exe or bat)"`
 }
 type removeShimCommand struct {
 	Name string `arg:"positional,required" help:"name of the shim to remove"`
