@@ -51,7 +51,7 @@ func (cmd *UninstallCommand) Run(mochaDir string) error {
 		}
 
 		for _, binary := range binaries {
-			shimName := strings.TrimSuffix(filepath.Base(binary), filepath.Ext(binary))
+			shimName := strings.TrimSuffix(filepath.Base(binary.Alias), filepath.Ext(binary.Alias))
 			if err := shim.DeleteShim(shimName, mochaDir); err != nil {
 				return fmt.Errorf("failed to remove shim %q: %w", shimName, err)
 			}

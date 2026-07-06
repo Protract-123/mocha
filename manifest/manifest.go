@@ -60,15 +60,45 @@ func GetManifestDownloads(manifestPath string, architecture string) ([]DownloadE
 	return entries, nil
 }
 
-// TODO: handle more bin formats (e.g. array of arrays)
+type BinEntry struct {
+	Exe   string
+	Alias string
+	Args  string
+}
 
-func GetManifestBin(manifestPath string) ([]string, error) {
+func GetManifestBin(manifestPath string) ([]BinEntry, error) {
 	jsonData, err := getManifestJson(manifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get manifest json: %w", err)
 	}
 
-	return extractStringOrArray(jsonData["bin"]), nil
+	rawBinEntries := extractStringOrArrayOrArrayOfArray(jsonData["bin"])
+	binEntries := make([]BinEntry, len(rawBinEntries))
+
+	for i, rawBinEntry := range rawBinEntries {
+		var exe string
+		var alias string
+		var args string
+
+		if len(rawBinEntry) > 0 {
+			exe = rawBinEntry[0]
+			alias = rawBinEntry[0]
+		}
+		if len(rawBinEntry) > 1 {
+			alias = rawBinEntry[1]
+		}
+		if len(rawBinEntry) > 2 {
+			args = rawBinEntry[2]
+		}
+
+		binEntries[i] = BinEntry{
+			Exe:   exe,
+			Alias: alias,
+			Args:  args,
+		}
+	}
+
+	return binEntries, nil
 }
 
 func GetManifestInnoSetup(manifestPath string) bool {
@@ -123,6 +153,26 @@ func extractStringOrArray(v any) []string {
 		out := make([]string, 0, len(val))
 		for _, item := range val {
 			if s, ok := item.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func extractStringOrArrayOrArrayOfArray(v any) [][]string {
+	switch val := v.(type) {
+	case string:
+		if val == "" {
+			return nil
+		}
+		return [][]string{{val}}
+	case []any:
+		out := make([][]string, 0, len(val))
+		for _, item := range val {
+			if s := extractStringOrArray(item); len(s) > 0 {
 				out = append(out, s)
 			}
 		}
