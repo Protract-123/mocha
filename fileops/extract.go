@@ -10,8 +10,6 @@ import (
 	"strings"
 )
 
-// TODO: consider more secure extractors: e.g. https://github.com/hashicorp/go-extract or force 7z to be installed
-
 func ExtractMsi(msiPath string, outputDir string) error {
 	cmd := exec.Command("msiexec.exe", "/a", msiPath, "/qn", fmt.Sprintf("TARGETDIR=%s", outputDir))
 	if err := cmd.Run(); err != nil {
@@ -109,6 +107,8 @@ func findTarFile(dir string) (string, error) {
 	return "", fmt.Errorf("no .tar file found in %s", dir)
 }
 
+// TODO: make zip bomb protection limits configurable
+
 func ExtractZip(zipPath string, outputDir string) error {
 	reader, err := zip.OpenReader(zipPath)
 	if err != nil {
@@ -116,66 +116,76 @@ func ExtractZip(zipPath string, outputDir string) error {
 	}
 	defer reader.Close()
 
+	if len(reader.File) > 10000 {
+		return fmt.Errorf("too many files in zip (%d > 10000)", len(reader.File))
+	}
+
 	if err = os.MkdirAll(outputDir, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
+	var zipSize int64
+
 	for _, file := range reader.File {
-		err = extractZipFile(file, outputDir)
+		if zipSize > 2*1024*1024*1024+1 {
+			_ = os.RemoveAll(outputDir)
+			return fmt.Errorf("zip %q is too large", filepath.Base(zipPath))
+		}
+
+		fileSize, err := extractZipFile(file, outputDir)
 		if err != nil {
 			_ = os.RemoveAll(outputDir)
 			return fmt.Errorf("failed to unzip file: %w", err)
 		}
+		zipSize += fileSize
 	}
 
 	return nil
 }
 
-// TODO: improve zip bomb protection
-
-func extractZipFile(file *zip.File, outputDir string) error {
+func extractZipFile(file *zip.File, outputDir string) (int64, error) {
 	outputPath := filepath.Join(outputDir, file.Name)
 
 	relativePath, err := filepath.Rel(outputDir, outputPath)
 	if err != nil || strings.HasPrefix(relativePath, "..") || strings.Contains(relativePath, ":") {
-		return fmt.Errorf("illegal file path in zip: %s", file.Name)
+		return 0, fmt.Errorf("illegal file path in zip: %s", file.Name)
 	}
 
 	if file.FileInfo().IsDir() {
 		if err := os.MkdirAll(outputPath, os.ModePerm); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", outputPath, err)
+			return 0, fmt.Errorf("failed to create directory %s: %w", outputPath, err)
 		}
-		return nil
+		return 0, nil
 	}
 
 	if err := os.MkdirAll(filepath.Dir(outputPath), os.ModePerm); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", outputPath, err)
+		return 0, fmt.Errorf("failed to create directory %s: %w", outputPath, err)
 	}
 
 	outFile, err := os.Create(outputPath)
 	if err != nil {
-		return fmt.Errorf("failed to create file %s: %w", outputPath, err)
+		return 0, fmt.Errorf("failed to create file %s: %w", outputPath, err)
 	}
 	defer outFile.Close()
 
 	srcFile, err := file.Open()
 	if err != nil {
-		return fmt.Errorf("failed to open file %s: %w", file.Name, err)
+		return 0, fmt.Errorf("failed to open file %s: %w", file.Name, err)
 	}
 	defer srcFile.Close()
 
 	bytesWritten, err := io.Copy(outFile, io.LimitReader(srcFile, 512*1024*1024+1))
 	if err != nil {
-		return fmt.Errorf("failed to copy data to file %s: %w", file.Name, err)
+		return 0, fmt.Errorf("failed to copy data to file %s: %w", file.Name, err)
 	}
 	if bytesWritten > 512*1024*1024 {
-		return fmt.Errorf("file %s is too large", file.Name)
+		return 0, fmt.Errorf("file %s is too large", file.Name)
 	}
 
 	err = outFile.Sync()
 	if err != nil {
-		return fmt.Errorf("failed to write file %s: %w", file.Name, err)
+		return 0, fmt.Errorf("failed to write file %s: %w", file.Name, err)
 	}
 
-	return nil
+	return bytesWritten, nil
 }
