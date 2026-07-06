@@ -87,7 +87,7 @@ func run() error {
 	}
 
 	if errors.Is(executionError, arg.ErrHelp) {
-		parser.WriteHelp(os.Stderr)
+		parser.WriteHelp(os.Stdout)
 		return nil
 	}
 	return executionError
