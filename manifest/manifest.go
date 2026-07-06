@@ -82,29 +82,64 @@ func GetManifestBin(manifestPath string, architecture string) ([]BinEntry, error
 
 	binEntries := make([]BinEntry, len(rawBinEntries))
 	for i, rawBinEntry := range rawBinEntries {
-		var exe string
-		var alias string
-		var args string
+		binEntry := BinEntry{}
 
 		if len(rawBinEntry) > 0 {
-			exe = rawBinEntry[0]
-			alias = rawBinEntry[0]
+			binEntry.Exe = rawBinEntry[0]
+			binEntry.Alias = rawBinEntry[0]
 		}
 		if len(rawBinEntry) > 1 {
-			alias = rawBinEntry[1]
+			binEntry.Alias = rawBinEntry[1]
 		}
 		if len(rawBinEntry) > 2 {
-			args = rawBinEntry[2]
+			binEntry.Args = rawBinEntry[2]
 		}
 
-		binEntries[i] = BinEntry{
-			Exe:   exe,
-			Alias: alias,
-			Args:  args,
-		}
+		binEntries[i] = binEntry
 	}
 
 	return binEntries, nil
+}
+
+type ShortcutEntry struct {
+	Exe  string
+	Name string
+	Args string
+	Icon string
+}
+
+func GetManifestShortcut(manifestPath string, architecture string) ([]ShortcutEntry, error) {
+	jsonData, err := getManifestJson(manifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get manifest json: %w", err)
+	}
+
+	var rawShortcutEntries [][]string
+	if shortcuts, err := getArchSpecificProperty("shortcuts", architecture, jsonData); err == nil {
+		rawShortcutEntries = extractStringOrArrayOrArrayOfArray(shortcuts)
+	}
+
+	shortcutEntries := make([]ShortcutEntry, len(rawShortcutEntries))
+	for i, rawShortcutEntry := range rawShortcutEntries {
+		shortcutEntry := ShortcutEntry{}
+
+		if len(rawShortcutEntry) < 2 {
+			continue
+		}
+
+		shortcutEntry.Exe = rawShortcutEntry[0]
+		shortcutEntry.Name = rawShortcutEntry[1]
+
+		if len(rawShortcutEntry) > 2 {
+			shortcutEntry.Args = rawShortcutEntry[2]
+		}
+		if len(rawShortcutEntry) > 3 {
+			shortcutEntry.Icon = rawShortcutEntry[3]
+		}
+		shortcutEntries[i] = shortcutEntry
+	}
+
+	return shortcutEntries, nil
 }
 
 func GetManifestInnoSetup(manifestPath string) bool {

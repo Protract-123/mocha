@@ -81,6 +81,37 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 			}
 		}
 
+		shortcutEntries, err := manifest.GetManifestShortcut(manifestRef.ManifestPath, downloadArch)
+		if err != nil {
+			return fmt.Errorf("failed to get shortcuts to create: %w", err)
+		}
+
+		shortcutDirectory := os.ExpandEnv(filepath.Join("$APPDATA", "Microsoft", "Windows", "Start Menu", "Programs", "Mocha Apps"))
+		if err := os.MkdirAll(shortcutDirectory, os.ModePerm); err != nil {
+			return fmt.Errorf("failed to create shortcut directory: %w", err)
+		}
+
+		for _, shortcutEntry := range shortcutEntries {
+			shortcutName := fmt.Sprintf("%s.lnk", shortcutEntry.Name)
+
+			shortcut := fileops.Shortcut{
+				ShortcutPath:     filepath.Join(shortcutDirectory, shortcutName),
+				Target:           filepath.Join(currentDir, shortcutEntry.Exe),
+				WorkingDirectory: currentDir,
+				Arguments:        shortcutEntry.Args,
+			}
+
+			if shortcutEntry.Icon != "" {
+				shortcut.IconLocation = filepath.Join(currentDir, shortcutEntry.Icon)
+			} else {
+				shortcut.IconLocation = shortcut.Target
+			}
+
+			if err := fileops.CreateShortcut(shortcut); err != nil {
+				return fmt.Errorf("failed to create shortcut %q: %w", shortcutName, err)
+			}
+		}
+
 		output.LogOutput(fmt.Sprintf("Installed %s", manifestRef.Name))
 	}
 
