@@ -19,8 +19,23 @@ type InstallCommand struct {
 }
 
 func (cmd *InstallCommand) Run(mochaDir string) error {
+	downloadArch, err := manifest.GetDownloadArch()
+	if err != nil {
+		return fmt.Errorf("failed to get system architecture: %w", err)
+	}
+
 	for _, refString := range cmd.Apps {
-		manifestRef, downloadResults, err := manifest.DownloadManifestFiles(refString, cmd.Force, mochaDir)
+		manifestRef, err := manifest.ParseRefString(refString)
+		if err != nil {
+			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
+		}
+
+		manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
+		if err != nil {
+			return fmt.Errorf("failed to get %q manifest details: %w", refString, err)
+		}
+
+		downloadResults, err := manifest.DownloadManifestFiles(manifestRef, downloadArch, cmd.Force, mochaDir)
 		if err != nil {
 			return fmt.Errorf("failed to download manifest files: %w", err)
 		}
@@ -53,7 +68,7 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 			return fmt.Errorf("failed to create junction: %w", err)
 		}
 
-		binaries, err := manifest.GetManifestBin(manifestRef.ManifestPath)
+		binaries, err := manifest.GetManifestBin(manifestRef.ManifestPath, downloadArch)
 		if err != nil {
 			return fmt.Errorf("failed to get binaries to shim: %w", err)
 		}

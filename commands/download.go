@@ -14,8 +14,23 @@ type DownloadCommand struct {
 }
 
 func (cmd *DownloadCommand) Run(mochaDir string) error {
+	downloadArch, err := manifest.GetDownloadArch()
+	if err != nil {
+		return fmt.Errorf("failed to get system architecture: %w", err)
+	}
+
 	for _, refString := range cmd.Apps {
-		if _, _, err := manifest.DownloadManifestFiles(refString, cmd.Force, mochaDir); err != nil {
+		manifestRef, err := manifest.ParseRefString(refString)
+		if err != nil {
+			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
+		}
+
+		manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
+		if err != nil {
+			return fmt.Errorf("failed to get %q manifest details: %w", refString, err)
+		}
+
+		if _, err := manifest.DownloadManifestFiles(manifestRef, downloadArch, cmd.Force, mochaDir); err != nil {
 			return fmt.Errorf("failed to download manifest files: %w", err)
 		}
 	}

@@ -15,6 +15,11 @@ type UninstallCommand struct {
 }
 
 func (cmd *UninstallCommand) Run(mochaDir string) error {
+	downloadArch, err := manifest.GetDownloadArch()
+	if err != nil {
+		return fmt.Errorf("failed to get system architecture: %w", err)
+	}
+
 	for _, refString := range cmd.Apps {
 		manifestRef, err := manifest.ParseRefString(refString)
 		if err != nil {
@@ -45,7 +50,7 @@ func (cmd *UninstallCommand) Run(mochaDir string) error {
 			return fmt.Errorf("failed to populate manifest ref %q: %w", refString, err)
 		}
 
-		binaries, err := manifest.GetManifestBin(manifestRef.ManifestPath)
+		binaries, err := manifest.GetManifestBin(manifestRef.ManifestPath, downloadArch)
 		if err != nil {
 			return fmt.Errorf("failed to get shims to remove: %w", err)
 		}

@@ -21,25 +21,10 @@ type DownloadResult struct {
 	RealFilename string
 }
 
-func DownloadManifestFiles(refString string, force bool, mochaDir string) (*Ref, []DownloadResult, error) {
-	manifestRef, err := ParseRefString(refString)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
-	}
-
-	manifestRef, err = PopulateRef(manifestRef, mochaDir)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get %q manifest details: %w", refString, err)
-	}
-
-	downloadArch, err := GetDownloadArch()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get system architecture: %w", err)
-	}
-
+func DownloadManifestFiles(manifestRef Ref, downloadArch string, force bool, mochaDir string) ([]DownloadResult, error) {
 	downloadEntries, err := GetManifestDownloads(manifestRef.ManifestPath, downloadArch)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get manifest downloads: %w", err)
+		return nil, fmt.Errorf("failed to get manifest downloads: %w", err)
 	}
 
 	downloadResults := make([]DownloadResult, 0, len(downloadEntries))
@@ -47,14 +32,14 @@ func DownloadManifestFiles(refString string, force bool, mochaDir string) (*Ref,
 	for _, entry := range downloadEntries {
 		downloadPath, err := fileops.GetCachePath(mochaDir, manifestRef.Name, manifestRef.Version, entry.URL)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to get cache path: %w", err)
+			return nil, fmt.Errorf("failed to get cache path: %w", err)
 		}
 		filename := filepath.Base(downloadPath)
 
 		if _, err := os.Stat(downloadPath); err != nil || force {
 			output.LogOutput(fmt.Sprintf("Downloading %s to %s", entry.URL, downloadPath))
 			if err := fileops.DownloadFile(entry.URL, downloadPath); err != nil {
-				return nil, nil, fmt.Errorf("failed to download %s: %w", filename, err)
+				return nil, fmt.Errorf("failed to download %s: %w", filename, err)
 			}
 			output.LogOutput(fmt.Sprintf("Downloaded %s", filename))
 		} else {
@@ -63,7 +48,7 @@ func DownloadManifestFiles(refString string, force bool, mochaDir string) (*Ref,
 
 		if err := fileops.VerifyHash(downloadPath, entry.Hash); err != nil {
 			_ = os.Remove(downloadPath)
-			return nil, nil, fmt.Errorf("failed to verify %s: %w", filename, err)
+			return nil, fmt.Errorf("failed to verify %s: %w", filename, err)
 		}
 
 		output.LogOutput(fmt.Sprintf("Verified %s\n", filename))
@@ -85,7 +70,7 @@ func DownloadManifestFiles(refString string, force bool, mochaDir string) (*Ref,
 		})
 	}
 
-	return &manifestRef, downloadResults, nil
+	return downloadResults, nil
 }
 
 type InstallOptions struct {

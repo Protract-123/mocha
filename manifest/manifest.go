@@ -18,20 +18,23 @@ func GetManifestDownloads(manifestPath string, architecture string) ([]DownloadE
 		return nil, fmt.Errorf("failed to get manifest json: %w", err)
 	}
 
-	var urls, hashes, subDirs []string
-
-	if archMap, ok := jsonData["architecture"].(map[string]any); ok {
-		if archBlock, ok := archMap[architecture].(map[string]any); ok {
-			urls = extractStringOrArray(archBlock["url"])
-			hashes = extractStringOrArray(archBlock["hash"])
-			subDirs = extractStringOrArray(archBlock["extract_dir"])
-		}
+	var urls []string
+	if urlVal, err := getArchSpecificProperty("url", architecture, jsonData); err == nil {
+		urls = extractStringOrArray(urlVal)
 	}
 
 	if len(urls) == 0 {
-		urls = extractStringOrArray(jsonData["url"])
-		hashes = extractStringOrArray(jsonData["hash"])
-		subDirs = extractStringOrArray(jsonData["extract_dir"])
+		return nil, fmt.Errorf("unable to find download URL for %s (arch %q)", manifestPath, architecture)
+	}
+
+	var hashes []string
+	if hashVal, err := getArchSpecificProperty("hash", architecture, jsonData); err == nil {
+		hashes = extractStringOrArray(hashVal)
+	}
+
+	var subDirs []string
+	if subDirVal, err := getArchSpecificProperty("extract_dir", architecture, jsonData); err == nil {
+		subDirs = extractStringOrArray(subDirVal)
 	}
 
 	if len(urls) == 0 {
@@ -66,15 +69,18 @@ type BinEntry struct {
 	Args  string
 }
 
-func GetManifestBin(manifestPath string) ([]BinEntry, error) {
+func GetManifestBin(manifestPath string, architecture string) ([]BinEntry, error) {
 	jsonData, err := getManifestJson(manifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get manifest json: %w", err)
 	}
 
-	rawBinEntries := extractStringOrArrayOrArrayOfArray(jsonData["bin"])
-	binEntries := make([]BinEntry, len(rawBinEntries))
+	var rawBinEntries [][]string
+	if bins, err := getArchSpecificProperty("bin", architecture, jsonData); err == nil {
+		rawBinEntries = extractStringOrArrayOrArrayOfArray(bins)
+	}
 
+	binEntries := make([]BinEntry, len(rawBinEntries))
 	for i, rawBinEntry := range rawBinEntries {
 		var exe string
 		var alias string
@@ -140,6 +146,22 @@ func getManifestJson(manifestPath string) (map[string]any, error) {
 	}
 
 	return jsonData, nil
+}
+
+func getArchSpecificProperty(property string, architecture string, jsonData map[string]any) (any, error) {
+	if archMap, ok := jsonData["architecture"].(map[string]any); ok {
+		if archBlock, ok := archMap[architecture].(map[string]any); ok {
+			if val, ok := archBlock[property]; ok {
+				return val, nil
+			}
+		}
+	}
+
+	if val, ok := jsonData[property]; ok {
+		return val, nil
+	}
+
+	return nil, fmt.Errorf("failed to get %q from manifest json", property)
 }
 
 func extractStringOrArray(v any) []string {
