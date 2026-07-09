@@ -142,6 +142,40 @@ func GetManifestShortcut(manifestPath string, architecture string) ([]ShortcutEn
 	return shortcutEntries, nil
 }
 
+type PersistEntry struct {
+	Target string
+	Source string
+}
+
+func GetManifestPersist(manifestPath string) ([]PersistEntry, error) {
+	jsonData, err := getManifestJson(manifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get manifest json: %w", err)
+	}
+
+	var rawPersistEntries [][]string
+	if persist, ok := jsonData["persist"]; ok {
+		rawPersistEntries = extractStringOrArrayOrArrayOfArray(persist)
+	}
+
+	persistEntries := make([]PersistEntry, len(rawPersistEntries))
+	for i, rawPersistEntry := range rawPersistEntries {
+		persistEntry := PersistEntry{}
+
+		if len(rawPersistEntry) > 0 {
+			persistEntry.Target = rawPersistEntry[0]
+			persistEntry.Source = rawPersistEntry[0]
+		}
+		if len(rawPersistEntry) > 1 {
+			persistEntry.Source = rawPersistEntry[1]
+		}
+
+		persistEntries[i] = persistEntry
+	}
+
+	return persistEntries, nil
+}
+
 func GetManifestInnoSetup(manifestPath string) bool {
 	jsonData, err := getManifestJson(manifestPath)
 	if err != nil {

@@ -46,7 +46,6 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 		}
 
 		innoSetup := manifest.GetManifestInnoSetup(manifestRef.ManifestPath)
-
 		for _, result := range downloadResults {
 			installOptions := manifest.InstallOptions{
 				SubDir:       result.Entry.SubDir,
@@ -109,6 +108,66 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 
 			if err := fileops.CreateShortcut(shortcut); err != nil {
 				return fmt.Errorf("failed to create shortcut %q: %w", shortcutName, err)
+			}
+		}
+
+		persistEntries, err := manifest.GetManifestPersist(manifestRef.ManifestPath)
+		if err != nil {
+			return fmt.Errorf("failed to get persist entries: %w", err)
+		}
+
+		for _, persistEntry := range persistEntries {
+			source := filepath.Join(mochaDir, "persist", manifestRef.Name, persistEntry.Source)
+			target := filepath.Join(currentDir, persistEntry.Target)
+
+			var sourceExists bool
+			var targetExists bool
+
+			if _, err := os.Stat(source); err == nil {
+				sourceExists = true
+			} else if !errors.Is(err, os.ErrNotExist) {
+				return fmt.Errorf("failed to check if persist source exists: %w", err)
+			}
+
+			if _, err := os.Stat(target); err == nil {
+				targetExists = true
+			} else if !errors.Is(err, os.ErrNotExist) {
+				return fmt.Errorf("failed to check if persist target exists: %w", err)
+			}
+
+			switch {
+			case !sourceExists && !targetExists:
+				if err := os.MkdirAll(source, os.ModePerm); err != nil {
+					return fmt.Errorf("failed to create source directory %q: %w", source, err)
+				}
+			case !sourceExists && targetExists:
+				if err := os.MkdirAll(filepath.Dir(source), os.ModePerm); err != nil {
+					return fmt.Errorf("failed to create parent directory for %q: %w", source, err)
+				}
+				if err := os.Rename(target, source); err != nil {
+					return fmt.Errorf("failed to move target %q to %q: %w", target, source, err)
+				}
+			case sourceExists && targetExists:
+				if err := os.Rename(target, target+".original"); err != nil {
+					return fmt.Errorf("failed to move target %q to %q: %w", target, target+".original", err)
+				}
+			case sourceExists && !targetExists:
+				break
+			}
+
+			info, err := os.Stat(source)
+			if err != nil {
+				return fmt.Errorf("failed to get persist source info: %w", err)
+			}
+
+			if info.IsDir() {
+				if err := fileops.CreateJunction(source, target); err != nil {
+					return fmt.Errorf("failed to symlink (junction) target to source: %w", err)
+				}
+			} else {
+				if err := os.Link(source, target); err != nil {
+					return fmt.Errorf("failed to symlink (hardlink) target to source: %w", err)
+				}
 			}
 		}
 
