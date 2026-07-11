@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -16,6 +17,12 @@ import (
 type InstallCommand struct {
 	Apps  []string `arg:"positional,required" help:"apps to install (e.g. git, bat@0.26.1)"`
 	Force bool     `arg:"-f,--force" help:"ignore cache hits"`
+}
+
+type InstallInfo struct {
+	Bucket  string `json:"bucket"`
+	Version string `json:"version"`
+	Arch    string `json:"architecture"`
 }
 
 func (cmd *InstallCommand) Run(mochaDir string) error {
@@ -91,10 +98,15 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 		}
 
 		for _, shortcutEntry := range shortcutEntries {
-			shortcutName := fmt.Sprintf("%s.lnk", shortcutEntry.Name)
+			shortcutPath := filepath.Join(shortcutDirectory, fmt.Sprintf("%s.lnk", shortcutEntry.Name))
+			shortcutName := filepath.Base(shortcutPath)
+
+			if err := os.MkdirAll(filepath.Dir(shortcutPath), os.ModePerm); err != nil {
+				return fmt.Errorf("failed to create shortcut directory: %w", err)
+			}
 
 			shortcut := fileops.Shortcut{
-				ShortcutPath:     filepath.Join(shortcutDirectory, shortcutName),
+				ShortcutPath:     shortcutPath,
 				Target:           filepath.Join(currentDir, shortcutEntry.Exe),
 				WorkingDirectory: currentDir,
 				Arguments:        shortcutEntry.Args,
@@ -169,6 +181,22 @@ func (cmd *InstallCommand) Run(mochaDir string) error {
 					return fmt.Errorf("failed to symlink (hardlink) target to source: %w", err)
 				}
 			}
+		}
+
+		installJsonFile, err := os.Create(filepath.Join(currentDir, "install.json"))
+		if err != nil {
+			return fmt.Errorf("failed to create install.json: %w", err)
+		}
+
+		installInfo := InstallInfo{
+			Bucket:  manifestRef.Bucket,
+			Version: manifestRef.Version,
+			Arch:    downloadArch,
+		}
+
+		jsonEncoder := json.NewEncoder(installJsonFile)
+		if err := jsonEncoder.Encode(installInfo); err != nil {
+			return fmt.Errorf("failed to write install info to install.json: %w", err)
 		}
 
 		output.LogOutput(fmt.Sprintf("Installed %s", manifestRef.Name))
