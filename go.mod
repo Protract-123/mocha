@@ -8,8 +8,8 @@ require (
 	github.com/alexflint/go-arg v1.6.1
 	github.com/go-ole/go-ole v1.3.0
 	github.com/sahilm/fuzzy v0.1.3
-	golang.org/x/sync v0.21.0
-	golang.org/x/sys v0.46.0
+	golang.org/x/sync v0.22.0
+	golang.org/x/sys v0.47.0
 )
 
 require github.com/alexflint/go-scalar v1.2.0 // indirect
