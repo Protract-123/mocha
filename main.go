@@ -26,6 +26,7 @@ type arguments struct {
 	ShimCommand      *commands.ShimCommand      `arg:"subcommand:shim" help:"manage mocha shims"`
 	UninstallCommand *commands.UninstallCommand `arg:"subcommand:uninstall" help:"uninstall apps"`
 	UpdateCommand    *commands.UpdateCommand    `arg:"subcommand:update" help:"update mocha buckets"`
+	UpgradeCommand   *commands.UpgradeCommand   `arg:"subcommand:upgrade" help:"upgrade mocha apps"`
 }
 
 func (arguments) Version() string {
@@ -82,6 +83,8 @@ func run() error {
 		executionError = args.UninstallCommand.Run(mochaDirectory)
 	case args.UpdateCommand != nil:
 		executionError = args.UpdateCommand.Run(mochaDirectory)
+	case args.UpgradeCommand != nil:
+		executionError = args.UpgradeCommand.Run(mochaDirectory)
 	default:
 		executionError = arg.ErrHelp
 	}
