@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Protract-123/mocha/manifest"
+	"github.com/Protract-123/mocha/pkg"
 )
 
 // TODO: add more/better logging, like a progress bar
@@ -14,7 +15,7 @@ type DownloadCommand struct {
 }
 
 func (cmd *DownloadCommand) Run(mochaDir string) error {
-	downloadArch, err := manifest.GetDownloadArch()
+	downloadArch, err := pkg.GetDownloadArch()
 	if err != nil {
 		return fmt.Errorf("failed to get system architecture: %w", err)
 	}
@@ -30,7 +31,7 @@ func (cmd *DownloadCommand) Run(mochaDir string) error {
 			return fmt.Errorf("failed to get %q manifest details: %w", refString, err)
 		}
 
-		if _, err := manifest.DownloadManifestFiles(manifestRef, downloadArch, cmd.Force, mochaDir); err != nil {
+		if _, err := pkg.DownloadPackageFiles(manifestRef, downloadArch, cmd.Force, mochaDir); err != nil {
 			return fmt.Errorf("failed to download manifest files: %w", err)
 		}
 	}

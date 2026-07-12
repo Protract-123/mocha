@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/Protract-123/mocha/manifest"
-	"github.com/Protract-123/mocha/shim"
+	"github.com/Protract-123/mocha/pkg"
 )
 
 type UninstallCommand struct {
@@ -15,7 +14,7 @@ type UninstallCommand struct {
 }
 
 func (cmd *UninstallCommand) Run(mochaDir string) error {
-	downloadArch, err := manifest.GetDownloadArch()
+	downloadArch, err := pkg.GetDownloadArch()
 	if err != nil {
 		return fmt.Errorf("failed to get system architecture: %w", err)
 	}
@@ -41,25 +40,17 @@ func (cmd *UninstallCommand) Run(mochaDir string) error {
 			return fmt.Errorf("failed to check if %q exists: %w", refString, err)
 		}
 
-		if err := os.RemoveAll(deletionDir); err != nil {
-			return fmt.Errorf("failed to uninstall %q: %w", refString, err)
-		}
-
 		manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
 		if err != nil {
 			return fmt.Errorf("failed to populate manifest ref %q: %w", refString, err)
 		}
 
-		binaries, err := manifest.GetManifestBin(manifestRef.ManifestPath, downloadArch)
-		if err != nil {
-			return fmt.Errorf("failed to get shims to remove: %w", err)
+		if err := pkg.UnlinkApp(manifestRef, downloadArch, mochaDir, deletionDir); err != nil {
+			return fmt.Errorf("failed to unlink %q: %w", refString, err)
 		}
 
-		for _, binary := range binaries {
-			shimName := strings.TrimSuffix(filepath.Base(binary.Alias), filepath.Ext(binary.Alias))
-			if err := shim.DeleteShim(shimName, mochaDir); err != nil {
-				return fmt.Errorf("failed to remove shim %q: %w", shimName, err)
-			}
+		if err := os.RemoveAll(deletionDir); err != nil {
+			return fmt.Errorf("failed to uninstall %q: %w", refString, err)
 		}
 	}
 
