@@ -15,18 +15,11 @@ type Ref struct {
 	ManifestPath string
 }
 
-type BadRefError struct {
-	providedRef    string
-	expectedFormat string
-}
-
-func (error BadRefError) Error() string {
-	return fmt.Sprintf("invalid manifest reference %q, expected %q", error.providedRef, error.expectedFormat)
-}
-
 func ParseRefString(refString string) (Ref, error) {
-	if refString == "" {
-		return Ref{}, BadRefError{refString, "[bucket/]manifest[@version]"}
+	malformedRefError := fmt.Errorf("invalid manifest reference %q, expected format %q", refString, "[bucket/]manifest[@version]")
+
+	if refString == "" || strings.Count(refString, "@") > 1 || strings.Count(refString, "/") > 1 {
+		return Ref{}, malformedRefError
 	}
 
 	manifestRef := Ref{}
@@ -45,11 +38,11 @@ func ParseRefString(refString string) (Ref, error) {
 	}
 
 	if manifestRef.Name == "" {
-		return Ref{}, BadRefError{refString, "[bucket/]manifest[@version]"}
+		return Ref{}, malformedRefError
 	} else if manifestRef.Bucket == "" && strings.Contains(refString, "/") {
-		return Ref{}, BadRefError{refString, "bucket/manifest"}
+		return Ref{}, malformedRefError
 	} else if manifestRef.Version == "" && strings.Contains(refString, "@") {
-		return Ref{}, BadRefError{refString, "manifest@version"}
+		return Ref{}, malformedRefError
 	}
 
 	return manifestRef, nil

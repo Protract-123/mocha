@@ -325,6 +325,7 @@ func TestCompareVersions(tester *testing.T) {
 			want: 0,
 		},
 	}
+
 	for _, test := range tests {
 		tester.Run(test.name, func(t *testing.T) {
 			if got := CompareVersions(test.args.version1, test.args.version2); got != test.want {
