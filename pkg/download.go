@@ -22,7 +22,12 @@ type DownloadResult struct {
 }
 
 func DownloadPackageFiles(manifestRef manifest.Ref, downloadArch string, force bool, mochaDir string) ([]DownloadResult, error) {
-	downloadEntries, err := manifest.GetManifestDownloads(manifestRef.ManifestPath, downloadArch)
+	manifestJson, err := manifest.GetJson(manifestRef.ManifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get manifest JSON: %w", err)
+	}
+
+	downloadEntries, err := manifest.GetDownloadEntries(manifestJson, downloadArch)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get manifest downloads: %w", err)
 	}

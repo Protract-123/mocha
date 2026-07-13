@@ -86,7 +86,12 @@ func InstallApp(ref manifest.Ref, downloadArch string, force bool, mochaDir stri
 		return fmt.Errorf("failed to create directory %s: %w", versionDir, err)
 	}
 
-	innoSetup := manifest.GetManifestInnoSetup(ref.ManifestPath)
+	manifestJson, err := manifest.GetJson(ref.ManifestPath)
+	if err != nil {
+		return fmt.Errorf("failed to get manifest JSON: %w", err)
+	}
+
+	innoSetup := manifest.GetInnoSetup(manifestJson)
 	for _, result := range downloadResults {
 		installOptions := InstallOptions{
 			SubDir:       result.Entry.SubDir,
@@ -108,7 +113,7 @@ func InstallApp(ref manifest.Ref, downloadArch string, force bool, mochaDir stri
 		return fmt.Errorf("failed to create junction: %w", err)
 	}
 
-	binaries, err := manifest.GetManifestBin(ref.ManifestPath, downloadArch)
+	binaries, err := manifest.GetExecutableEntries(manifestJson, downloadArch)
 	if err != nil {
 		return fmt.Errorf("failed to get binaries to shim: %w", err)
 	}
@@ -121,16 +126,12 @@ func InstallApp(ref manifest.Ref, downloadArch string, force bool, mochaDir stri
 		}
 	}
 
-	shortcutEntries, err := manifest.GetManifestShortcut(ref.ManifestPath, downloadArch)
-	if err != nil {
-		return fmt.Errorf("failed to get shortcuts to create: %w", err)
-	}
-
 	shortcutDirectory := os.ExpandEnv(filepath.Join("$APPDATA", "Microsoft", "Windows", "Start Menu", "Programs", "Mocha Apps"))
 	if err := os.MkdirAll(shortcutDirectory, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create shortcut directory: %w", err)
 	}
 
+	shortcutEntries := manifest.GetShortcutEntries(manifestJson, downloadArch)
 	for _, shortcutEntry := range shortcutEntries {
 		shortcutPath := filepath.Join(shortcutDirectory, fmt.Sprintf("%s.lnk", shortcutEntry.Name))
 		shortcutName := filepath.Base(shortcutPath)
@@ -157,11 +158,7 @@ func InstallApp(ref manifest.Ref, downloadArch string, force bool, mochaDir stri
 		}
 	}
 
-	persistEntries, err := manifest.GetManifestPersist(ref.ManifestPath)
-	if err != nil {
-		return fmt.Errorf("failed to get persist entries: %w", err)
-	}
-
+	persistEntries := manifest.GetPersistEntries(manifestJson)
 	for _, persistEntry := range persistEntries {
 		source := filepath.Join(mochaDir, "persist", ref.Name, persistEntry.Source)
 		target := filepath.Join(currentDir, persistEntry.Target)

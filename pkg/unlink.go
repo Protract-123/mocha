@@ -14,7 +14,12 @@ import (
 // TODO: This works on wrong info if a new version removes stuff which existed earlier
 
 func UnlinkApp(ref manifest.Ref, downloadArch string, mochaDir string, versionDir string) error {
-	binaries, err := manifest.GetManifestBin(ref.ManifestPath, downloadArch)
+	manifestJson, err := manifest.GetJson(ref.ManifestPath)
+	if err != nil {
+		return fmt.Errorf("failed to get manifest JSON: %w", err)
+	}
+
+	binaries, err := manifest.GetExecutableEntries(manifestJson, downloadArch)
 	if err != nil {
 		return fmt.Errorf("failed to get shims to remove: %w", err)
 	}
@@ -26,12 +31,9 @@ func UnlinkApp(ref manifest.Ref, downloadArch string, mochaDir string, versionDi
 		}
 	}
 
-	shortcutEntries, err := manifest.GetManifestShortcut(ref.ManifestPath, downloadArch)
-	if err != nil {
-		return fmt.Errorf("failed to get shortcuts to remove: %w", err)
-	}
-
 	shortcutDirectory := os.ExpandEnv(filepath.Join("$APPDATA", "Microsoft", "Windows", "Start Menu", "Programs", "Mocha Apps"))
+
+	shortcutEntries := manifest.GetShortcutEntries(manifestJson, downloadArch)
 	for _, shortcutEntry := range shortcutEntries {
 		shortcutPath := filepath.Join(shortcutDirectory, fmt.Sprintf("%s.lnk", shortcutEntry.Name))
 

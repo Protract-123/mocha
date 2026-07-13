@@ -88,7 +88,12 @@ func PopulateRef(ref Ref, mochaDir string) (Ref, error) {
 	ref.ManifestPath = manifestPath
 
 	if ref.Version == "" {
-		version, err := GetManifestVersion(manifestPath)
+		manifestJson, err := GetJson(manifestPath)
+		if err != nil {
+			return Ref{}, fmt.Errorf("failed to get manifest JSON: %w", err)
+		}
+
+		version, err := GetVersion(manifestJson)
 		if err != nil {
 			return Ref{}, fmt.Errorf("failed to get manifest version for %q in bucket %q: %w", ref.Name, ref.Bucket, err)
 		}
