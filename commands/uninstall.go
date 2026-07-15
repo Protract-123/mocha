@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/Protract-123/mocha/manifest"
+	"github.com/Protract-123/mocha/output"
 	"github.com/Protract-123/mocha/pkg"
 )
 
@@ -41,11 +42,13 @@ func (cmd *UninstallCommand) Run(mochaDir string) error {
 		}
 
 		if activeVersion != "" && (activeVersion == manifestRef.Version || manifestRef.Version == "") {
+			output.LogOutput("removing shims/shortcuts for " + refString)
 			if err := pkg.UnlinkApp(manifestRef.Name, mochaDir); err != nil {
 				return fmt.Errorf("failed to unlink app %q: %w", manifestRef.Name, err)
 			}
 		}
 
+		output.LogOutput("uninstalling " + refString)
 		if err := os.RemoveAll(deletionDir); err != nil {
 			return fmt.Errorf("failed to uninstall %q: %w", refString, err)
 		}
@@ -62,6 +65,8 @@ func (cmd *UninstallCommand) Run(mochaDir string) error {
 				}
 			}
 		}
+
+		output.LogOutput(fmt.Sprintf("successfully uninstalled %q\n", refString))
 	}
 
 	return nil
