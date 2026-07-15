@@ -15,17 +15,17 @@ type DownloadEntry struct {
 func GetDownloadEntries(jsonData map[string]any, architecture string) ([]DownloadEntry, error) {
 	var urls []string
 	if val, err := getArchSpecificProperty("url", architecture, jsonData); err == nil {
-		urls = extractStringOrArray(val)
+		urls = extractAsArray(val)
 	}
 
 	var hashes []string
 	if val, err := getArchSpecificProperty("hash", architecture, jsonData); err == nil {
-		hashes = extractStringOrArray(val)
+		hashes = extractAsArray(val)
 	}
 
 	var subDirs []string
 	if val, err := getArchSpecificProperty("extract_dir", architecture, jsonData); err == nil {
-		subDirs = extractStringOrArray(val)
+		subDirs = extractAsArray(val)
 	}
 
 	if len(urls) == 0 {
@@ -62,7 +62,7 @@ type ExecutableEntry struct {
 func GetExecutableEntries(jsonData map[string]any, architecture string) ([]ExecutableEntry, error) {
 	var rawEntries [][]string
 	if val, err := getArchSpecificProperty("bin", architecture, jsonData); err == nil {
-		rawEntries = extractStringOrArrayOrArrayOfArray(val)
+		rawEntries = extractAsArrayOfArray(val)
 	}
 
 	entries := make([]ExecutableEntry, len(rawEntries))
@@ -96,7 +96,7 @@ type ShortcutEntry struct {
 func GetShortcutEntries(jsonData map[string]any, architecture string) []ShortcutEntry {
 	var rawEntries [][]string
 	if val, err := getArchSpecificProperty("shortcuts", architecture, jsonData); err == nil {
-		rawEntries = extractStringOrArrayOrArrayOfArray(val)
+		rawEntries = extractAsArrayOfArray(val)
 	}
 
 	entries := make([]ShortcutEntry, len(rawEntries))
@@ -130,7 +130,7 @@ type PersistEntry struct {
 func GetPersistEntries(jsonData map[string]any) []PersistEntry {
 	var rawEntries [][]string
 	if val, ok := jsonData["persist"]; ok {
-		rawEntries = extractStringOrArrayOrArrayOfArray(val)
+		rawEntries = extractAsArrayOfArray(val)
 	}
 
 	entries := make([]PersistEntry, len(rawEntries))
@@ -195,7 +195,7 @@ func getArchSpecificProperty(property string, architecture string, jsonData map[
 	return nil, fmt.Errorf("failed to get %q from manifest json", property)
 }
 
-func extractStringOrArray(v any) []string {
+func extractAsArray(v any) []string {
 	switch val := v.(type) {
 	case string:
 		if val == "" {
@@ -215,7 +215,7 @@ func extractStringOrArray(v any) []string {
 	}
 }
 
-func extractStringOrArrayOrArrayOfArray(v any) [][]string {
+func extractAsArrayOfArray(v any) [][]string {
 	switch val := v.(type) {
 	case string:
 		if val == "" {
@@ -225,7 +225,7 @@ func extractStringOrArrayOrArrayOfArray(v any) [][]string {
 	case []any:
 		out := make([][]string, 0, len(val))
 		for _, item := range val {
-			if s := extractStringOrArray(item); len(s) > 0 {
+			if s := extractAsArray(item); len(s) > 0 {
 				out = append(out, s)
 			}
 		}
