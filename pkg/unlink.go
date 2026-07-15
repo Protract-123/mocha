@@ -11,10 +11,8 @@ import (
 	"github.com/Protract-123/mocha/shim"
 )
 
-// TODO: This works on wrong info if a new version removes stuff which existed earlier
-
 func UnlinkApp(ref manifest.Ref, downloadArch string, mochaDir string, versionDir string) error {
-	manifestJson, err := manifest.GetJson(ref.ManifestPath)
+	manifestJson, err := manifest.GetJson(filepath.Join(versionDir, "manifest.json"))
 	if err != nil {
 		return fmt.Errorf("failed to get manifest JSON: %w", err)
 	}

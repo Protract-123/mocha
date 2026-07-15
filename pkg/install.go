@@ -230,5 +230,9 @@ func InstallApp(ref manifest.Ref, downloadArch string, force bool, mochaDir stri
 		return fmt.Errorf("failed to write install info to install.json: %w", err)
 	}
 
+	if err := fileops.CopyFile(ref.ManifestPath, filepath.Join(currentDir, "manifest.json")); err != nil {
+		return fmt.Errorf("failed to copy app manifest to install location: %w", err)
+	}
+
 	return nil
 }
