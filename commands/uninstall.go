@@ -49,6 +49,19 @@ func (cmd *UninstallCommand) Run(mochaDir string) error {
 		if err := os.RemoveAll(deletionDir); err != nil {
 			return fmt.Errorf("failed to uninstall %q: %w", refString, err)
 		}
+
+		if deletionDir != appDir {
+			files, err := os.ReadDir(appDir)
+			if err != nil {
+				return fmt.Errorf("failed to get files in %q: %w", deletionDir, err)
+			}
+
+			if len(files) == 0 {
+				if err := os.RemoveAll(appDir); err != nil {
+					return fmt.Errorf("failed to remove %q: %w", appDir, err)
+				}
+			}
+		}
 	}
 
 	return nil
