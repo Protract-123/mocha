@@ -53,7 +53,6 @@ func (cmd *UpgradeCommand) Run(mochaDir string) error {
 		}
 
 		installInfo := pkg.InstallInfo{}
-
 		if err := json.Unmarshal(infoFile, &installInfo); err != nil {
 			return fmt.Errorf("cannot parse install info file for %s: %w", app, err)
 		}
@@ -69,8 +68,7 @@ func (cmd *UpgradeCommand) Run(mochaDir string) error {
 
 		output.LogOutput("upgrading " + app)
 
-		oldVersionDir := filepath.Join(mochaDir, "apps", app, installInfo.Version)
-		if err := pkg.UnlinkApp(manifestRef, downloadArch, mochaDir, oldVersionDir); err != nil {
+		if err := pkg.UnlinkApp(app, mochaDir); err != nil {
 			return fmt.Errorf("failed to unlink old version of %s: %w", app, err)
 		}
 

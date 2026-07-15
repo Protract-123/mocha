@@ -14,24 +14,19 @@ type UninstallCommand struct {
 }
 
 func (cmd *UninstallCommand) Run(mochaDir string) error {
-	downloadArch, err := pkg.GetDownloadArch()
-	if err != nil {
-		return fmt.Errorf("failed to get system architecture: %w", err)
-	}
-
 	for _, refString := range cmd.Apps {
 		manifestRef, err := manifest.ParseRefString(refString)
 		if err != nil {
 			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
 		}
 
-		appDir := filepath.Join(mochaDir, "apps")
+		appDir := filepath.Join(mochaDir, "apps", manifestRef.Name)
 		var deletionDir string
 
 		if manifestRef.Version != "" {
-			deletionDir = filepath.Join(appDir, manifestRef.Name, manifestRef.Version)
+			deletionDir = filepath.Join(appDir, manifestRef.Version)
 		} else {
-			deletionDir = filepath.Join(appDir, manifestRef.Name)
+			deletionDir = filepath.Join(appDir)
 		}
 
 		if _, err := os.Stat(deletionDir); os.IsNotExist(err) {
@@ -40,13 +35,15 @@ func (cmd *UninstallCommand) Run(mochaDir string) error {
 			return fmt.Errorf("failed to check if %q exists: %w", refString, err)
 		}
 
-		manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
+		activeVersion, err := pkg.GetActiveVersion(manifestRef.Name, mochaDir)
 		if err != nil {
-			return fmt.Errorf("failed to populate manifest ref %q: %w", refString, err)
+			return fmt.Errorf("failed to get active version of %q: %w", manifestRef.Name, err)
 		}
 
-		if err := pkg.UnlinkApp(manifestRef, downloadArch, mochaDir, deletionDir); err != nil {
-			return fmt.Errorf("failed to unlink %q: %w", refString, err)
+		if activeVersion != "" && (activeVersion == manifestRef.Version || manifestRef.Version == "") {
+			if err := pkg.UnlinkApp(manifestRef.Name, mochaDir); err != nil {
+				return fmt.Errorf("failed to unlink app %q: %w", manifestRef.Name, err)
+			}
 		}
 
 		if err := os.RemoveAll(deletionDir); err != nil {

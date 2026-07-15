@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -11,13 +12,25 @@ import (
 	"github.com/Protract-123/mocha/shim"
 )
 
-func UnlinkApp(ref manifest.Ref, downloadArch string, mochaDir string, versionDir string) error {
-	manifestJson, err := manifest.GetJson(filepath.Join(versionDir, "manifest.json"))
+func UnlinkApp(appName string, mochaDir string) error {
+	currentDir := filepath.Join(mochaDir, "apps", appName, "current")
+
+	manifestJson, err := manifest.GetJson(filepath.Join(currentDir, "manifest.json"))
 	if err != nil {
 		return fmt.Errorf("failed to get manifest JSON: %w", err)
 	}
 
-	binaries, err := manifest.GetExecutableEntries(manifestJson, downloadArch)
+	installJson, err := os.ReadFile(filepath.Join(currentDir, "install.json"))
+	if err != nil {
+		return fmt.Errorf("failed to read install JSON: %w", err)
+	}
+
+	installInfo := InstallInfo{}
+	if err := json.Unmarshal(installJson, &installInfo); err != nil {
+		return fmt.Errorf("failed to unmarshal install JSON: %w", err)
+	}
+
+	binaries, err := manifest.GetExecutableEntries(manifestJson, installInfo.Arch)
 	if err != nil {
 		return fmt.Errorf("failed to get shims to remove: %w", err)
 	}
@@ -31,32 +44,13 @@ func UnlinkApp(ref manifest.Ref, downloadArch string, mochaDir string, versionDi
 
 	shortcutDirectory := os.ExpandEnv(filepath.Join("$APPDATA", "Microsoft", "Windows", "Start Menu", "Programs", "Mocha Apps"))
 
-	shortcutEntries := manifest.GetShortcutEntries(manifestJson, downloadArch)
+	shortcutEntries := manifest.GetShortcutEntries(manifestJson, installInfo.Arch)
 	for _, shortcutEntry := range shortcutEntries {
 		shortcutPath := filepath.Join(shortcutDirectory, fmt.Sprintf("%s.lnk", shortcutEntry.Name))
 
 		if err := os.Remove(shortcutPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("failed to remove shortcut %q: %w", filepath.Base(shortcutPath), err)
 		}
-	}
-
-	currentDir := filepath.Join(mochaDir, "apps", ref.Name, "current")
-
-	currentTarget, err := os.Readlink(currentDir)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
-		}
-		return fmt.Errorf("failed to read current link %s: %w", currentDir, err)
-	}
-
-	absVersionDir, err := filepath.Abs(versionDir)
-	if err != nil {
-		return fmt.Errorf("failed to resolve absolute path for %s: %w", versionDir, err)
-	}
-
-	if filepath.Clean(currentTarget) != filepath.Clean(absVersionDir) {
-		return nil
 	}
 
 	if err := os.Remove(currentDir); err != nil {
