@@ -10,14 +10,7 @@ import (
 
 	"github.com/Protract-123/mocha/fileops"
 	"github.com/Protract-123/mocha/manifest"
-	"github.com/Protract-123/mocha/shim"
 )
-
-type InstallInfo struct {
-	Bucket  string `json:"bucket"`
-	Version string `json:"version"`
-	Arch    string `json:"architecture"`
-}
 
 type InstallOptions struct {
 	SubDir string
@@ -104,64 +97,44 @@ func InstallApp(ref manifest.Ref, downloadArch string, force bool, mochaDir stri
 		}
 	}
 
-	currentDir := filepath.Join(mochaDir, "apps", ref.Name, "current")
-	if err := os.Remove(currentDir); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("failed to remove old junction %s: %w", currentDir, err)
+	if err := createPersistLinks(ref, manifestJson, mochaDir); err != nil {
+		return fmt.Errorf("failed to create persist links: %w", err)
 	}
 
-	if err := fileops.CreateJunction(versionDir, currentDir); err != nil {
-		return fmt.Errorf("failed to create junction: %w", err)
-	}
-
-	binaries, err := manifest.GetExecutableEntries(manifestJson, downloadArch)
+	installJsonFile, err := os.Create(filepath.Join(versionDir, "install.json"))
 	if err != nil {
-		return fmt.Errorf("failed to get binaries to shim: %w", err)
+		return fmt.Errorf("failed to create install.json: %w", err)
 	}
 
-	for _, binary := range binaries {
-		shimName := strings.TrimSuffix(filepath.Base(binary.Alias), filepath.Ext(binary.Alias))
-		shimPath := filepath.Join(currentDir, binary.Exe)
-		if err := shim.CreateShim(shimName, shimPath, mochaDir); err != nil {
-			return fmt.Errorf("failed to create shim %s: %w", shimName, err)
-		}
+	installInfo := InstallInfo{
+		Bucket:  ref.Bucket,
+		Version: ref.Version,
+		Arch:    downloadArch,
 	}
 
-	shortcutDirectory := os.ExpandEnv(filepath.Join("$APPDATA", "Microsoft", "Windows", "Start Menu", "Programs", "Mocha Apps"))
-	if err := os.MkdirAll(shortcutDirectory, os.ModePerm); err != nil {
-		return fmt.Errorf("failed to create shortcut directory: %w", err)
+	jsonEncoder := json.NewEncoder(installJsonFile)
+	if err := jsonEncoder.Encode(installInfo); err != nil {
+		return fmt.Errorf("failed to write install info to install.json: %w", err)
 	}
 
-	shortcutEntries := manifest.GetShortcutEntries(manifestJson, downloadArch)
-	for _, shortcutEntry := range shortcutEntries {
-		shortcutPath := filepath.Join(shortcutDirectory, fmt.Sprintf("%s.lnk", shortcutEntry.Name))
-		shortcutName := filepath.Base(shortcutPath)
-
-		if err := os.MkdirAll(filepath.Dir(shortcutPath), os.ModePerm); err != nil {
-			return fmt.Errorf("failed to create shortcut directory: %w", err)
-		}
-
-		shortcut := fileops.Shortcut{
-			ShortcutPath:     shortcutPath,
-			Target:           filepath.Join(currentDir, shortcutEntry.Exe),
-			WorkingDirectory: currentDir,
-			Arguments:        shortcutEntry.Args,
-		}
-
-		if shortcutEntry.Icon != "" {
-			shortcut.IconLocation = filepath.Join(currentDir, shortcutEntry.Icon)
-		} else {
-			shortcut.IconLocation = shortcut.Target
-		}
-
-		if err := fileops.CreateShortcut(shortcut); err != nil {
-			return fmt.Errorf("failed to create shortcut %q: %w", shortcutName, err)
-		}
+	if err := fileops.CopyFile(ref.ManifestPath, filepath.Join(versionDir, "manifest.json")); err != nil {
+		return fmt.Errorf("failed to copy app manifest to install location: %w", err)
 	}
 
+	if err := LinkApp(ref, mochaDir); err != nil {
+		return fmt.Errorf("failed to link app: %w", err)
+	}
+
+	return nil
+}
+
+func createPersistLinks(ref manifest.Ref, manifestJson map[string]any, mochaDir string) error {
+	versionDir := filepath.Join(mochaDir, "apps", ref.Name, ref.Version)
 	persistEntries := manifest.GetPersistEntries(manifestJson)
+
 	for _, persistEntry := range persistEntries {
 		source := filepath.Join(mochaDir, "persist", ref.Name, persistEntry.Source)
-		target := filepath.Join(currentDir, persistEntry.Target)
+		target := filepath.Join(versionDir, persistEntry.Target)
 
 		var sourceExists bool
 		var targetExists bool
@@ -212,26 +185,6 @@ func InstallApp(ref manifest.Ref, downloadArch string, force bool, mochaDir stri
 				return fmt.Errorf("failed to symlink (hardlink) target to source: %w", err)
 			}
 		}
-	}
-
-	installJsonFile, err := os.Create(filepath.Join(currentDir, "install.json"))
-	if err != nil {
-		return fmt.Errorf("failed to create install.json: %w", err)
-	}
-
-	installInfo := InstallInfo{
-		Bucket:  ref.Bucket,
-		Version: ref.Version,
-		Arch:    downloadArch,
-	}
-
-	jsonEncoder := json.NewEncoder(installJsonFile)
-	if err := jsonEncoder.Encode(installInfo); err != nil {
-		return fmt.Errorf("failed to write install info to install.json: %w", err)
-	}
-
-	if err := fileops.CopyFile(ref.ManifestPath, filepath.Join(currentDir, "manifest.json")); err != nil {
-		return fmt.Errorf("failed to copy app manifest to install location: %w", err)
 	}
 
 	return nil
