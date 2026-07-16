@@ -80,7 +80,7 @@ func (cmd *knownBucketsCommand) Run(mochaDir string) error {
 	}
 
 	for _, entry := range knownBuckets {
-		output.LogOutput(fmt.Sprint(output.AnsiBoldMagenta, entry.Name, output.AnsiReset, ": ", entry.Source, "\n"))
+		output.LogOutput(fmt.Sprint(entry.Name, ": ", entry.Source))
 	}
 
 	return nil

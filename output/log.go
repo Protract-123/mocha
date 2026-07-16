@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 func LogError(providedError error) {
@@ -36,29 +38,26 @@ func LogError(providedError error) {
 			sb.WriteString(fmt.Sprintf("├── %s\n", lines[i]))
 		}
 	}
-	_, err := fmt.Fprintf(os.Stderr, "%s%s%s\n", AnsiRed, sb.String(), AnsiReset)
-	if err != nil {
+
+	if _, err := color.New(color.FgRed).Fprintln(os.Stderr, sb.String()); err != nil {
 		return
 	}
 }
 
 func LogWarning(message string) {
-	_, err := fmt.Fprintf(os.Stderr, "%sWarning: %s%s\n", AnsiYellow, message, AnsiReset)
-	if err != nil {
+	if _, err := color.New(color.FgYellow).Fprintln(os.Stderr, message); err != nil {
 		return
 	}
 }
 
 func LogInfo(message string) {
-	_, err := fmt.Fprintf(os.Stderr, "%s%s%s\n", AnsiBlue, message, AnsiReset)
-	if err != nil {
+	if _, err := color.New(color.FgBlue).Fprintln(os.Stderr, message); err != nil {
 		return
 	}
 }
 
 func LogOutput(message string) {
-	_, err := fmt.Printf("%s%s%s\n", AnsiWhite, message, AnsiReset)
-	if err != nil {
+	if _, err := color.New(color.FgWhite).Fprintln(os.Stderr, message); err != nil {
 		return
 	}
 }
