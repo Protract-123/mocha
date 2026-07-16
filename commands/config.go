@@ -12,9 +12,9 @@ import (
 type ConfigCommand struct{}
 
 func (cmd *ConfigCommand) Run(mochaDir string) error {
-	configPath, err := config.GetConfigPath(mochaDir)
-	if errors.Is(err, config.ErrConfigNotFound) {
-		if err := config.WriteDefaultConfig(configPath); err != nil {
+	configPath, err := config.Location(mochaDir)
+	if errors.Is(err, config.ErrNotFound) {
+		if err := config.WriteDefault(configPath); err != nil {
 			return fmt.Errorf("failed to write default config: %w", err)
 		}
 	} else if err != nil {

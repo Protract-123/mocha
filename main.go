@@ -53,9 +53,16 @@ func run() error {
 		return fmt.Errorf("failed to create mocha directory: %w", err)
 	}
 
-	configuration, err := config.GetConfig(mochaDirectory)
-	if err != nil {
+	configuration, err := config.Load(mochaDirectory)
+	if err != nil && !errors.Is(err, config.ErrNotFound) {
 		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	configuration.MochaDirectory = mochaDirectory
+	config.Init(configuration)
+
+	if errors.Is(err, config.ErrNotFound) {
+		output.LogWarning("failed to find mocha.toml, using defaults")
 	}
 
 	var executionError error
@@ -66,7 +73,7 @@ func run() error {
 	case args.CacheCommand != nil:
 		executionError = args.CacheCommand.Run(mochaDirectory)
 	case args.CatCommand != nil:
-		executionError = args.CatCommand.Run(mochaDirectory, configuration.CatConfiguration)
+		executionError = args.CatCommand.Run(mochaDirectory, configuration.Cat)
 	case args.ConfigCommand != nil:
 		executionError = args.ConfigCommand.Run(mochaDirectory)
 	case args.DownloadCommand != nil:

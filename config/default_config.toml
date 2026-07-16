@@ -5,10 +5,11 @@
 #   - $USERPROFILE/.config/mocha/mocha.toml
 
 [cat]
-# whether to include deprecated packages in cat result
-# by default, not included
 include-deprecated = false
-
-# command which is run to show a manifest, where [path] is replaced by manifest path
-# e.g. "bat [path]". by default simply prints to console.
 command = ""
+
+[colors]
+accent = "purple"
+error = "red"
+warning = "yellow"
+info = "blue"
