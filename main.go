@@ -69,29 +69,29 @@ func run() error {
 
 	switch {
 	case args.BucketCommand != nil:
-		executionError = args.BucketCommand.Run(mochaDirectory)
+		executionError = args.BucketCommand.Run()
 	case args.CacheCommand != nil:
-		executionError = args.CacheCommand.Run(mochaDirectory)
+		executionError = args.CacheCommand.Run()
 	case args.CatCommand != nil:
-		executionError = args.CatCommand.Run(mochaDirectory, configuration.Cat)
+		executionError = args.CatCommand.Run()
 	case args.ConfigCommand != nil:
-		executionError = args.ConfigCommand.Run(mochaDirectory)
+		executionError = args.ConfigCommand.Run()
 	case args.DownloadCommand != nil:
-		executionError = args.DownloadCommand.Run(mochaDirectory)
+		executionError = args.DownloadCommand.Run()
 	case args.InstallCommand != nil:
-		executionError = args.InstallCommand.Run(mochaDirectory)
+		executionError = args.InstallCommand.Run()
 	case args.ListCommand != nil:
-		executionError = args.ListCommand.Run(mochaDirectory)
+		executionError = args.ListCommand.Run()
 	case args.SearchCommand != nil:
-		executionError = args.SearchCommand.Run(mochaDirectory)
+		executionError = args.SearchCommand.Run()
 	case args.ShimCommand != nil:
-		executionError = args.ShimCommand.Run(mochaDirectory)
+		executionError = args.ShimCommand.Run()
 	case args.UninstallCommand != nil:
-		executionError = args.UninstallCommand.Run(mochaDirectory)
+		executionError = args.UninstallCommand.Run()
 	case args.UpdateCommand != nil:
-		executionError = args.UpdateCommand.Run(mochaDirectory)
+		executionError = args.UpdateCommand.Run()
 	case args.UpgradeCommand != nil:
-		executionError = args.UpgradeCommand.Run(mochaDirectory)
+		executionError = args.UpgradeCommand.Run()
 	default:
 		executionError = arg.ErrHelp
 	}

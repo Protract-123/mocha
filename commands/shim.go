@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/output"
 	"github.com/Protract-123/mocha/shim"
 	"github.com/alexflint/go-arg"
@@ -26,20 +27,20 @@ type removeShimCommand struct {
 }
 type listShimCommand struct{}
 
-func (cmd *ShimCommand) Run(mochaDir string) error {
+func (cmd *ShimCommand) Run() error {
 	switch {
 	case cmd.Add != nil:
-		return cmd.Add.Run(mochaDir)
+		return cmd.Add.Run()
 	case cmd.Remove != nil:
-		return cmd.Remove.Run(mochaDir)
+		return cmd.Remove.Run()
 	case cmd.List != nil:
-		return cmd.List.Run(mochaDir)
+		return cmd.List.Run()
 	default:
 		return arg.ErrHelp
 	}
 }
 
-func (cmd *addShimCommand) Run(mochaDir string) error {
+func (cmd *addShimCommand) Run() error {
 	shimPath := cmd.Path
 
 	if _, err := os.Stat(cmd.Path); errors.Is(err, os.ErrNotExist) {
@@ -52,23 +53,23 @@ func (cmd *addShimCommand) Run(mochaDir string) error {
 		return fmt.Errorf("failed to confirm target's existence: %w", err)
 	}
 
-	if err := shim.CreateShim(cmd.Name, shimPath, mochaDir); err != nil {
+	if err := shim.CreateShim(cmd.Name, shimPath, config.Current().MochaDirectory); err != nil {
 		return fmt.Errorf("failed to create shim: %w", err)
 	}
 
 	return nil
 }
 
-func (cmd *removeShimCommand) Run(mochaDir string) error {
-	if err := shim.DeleteShim(cmd.Name, mochaDir); err != nil {
+func (cmd *removeShimCommand) Run() error {
+	if err := shim.DeleteShim(cmd.Name, config.Current().MochaDirectory); err != nil {
 		return fmt.Errorf("failed to delete shim: %w", err)
 	}
 
 	return nil
 }
 
-func (cmd *listShimCommand) Run(mochaDir string) error {
-	shims, err := shim.GetAllShims(mochaDir)
+func (cmd *listShimCommand) Run() error {
+	shims, err := shim.GetAllShims(config.Current().MochaDirectory)
 	if err != nil {
 		return fmt.Errorf("failed to get all shims: %w", err)
 	}

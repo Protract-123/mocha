@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/manifest"
 	"github.com/Protract-123/mocha/output"
 	"github.com/sahilm/fuzzy"
@@ -16,8 +17,10 @@ type SearchCommand struct {
 	Count int    `default:"20" arg:"-c, --count" help:"max number of fuzzy results to show"`
 }
 
-func (cmd *SearchCommand) Run(mochaDir string) error {
+func (cmd *SearchCommand) Run() error {
 	query := strings.ToLower(cmd.Query)
+
+	mochaDir := config.Current().MochaDirectory
 	bucketsDir := filepath.Join(mochaDir, "buckets")
 
 	buckets, err := os.ReadDir(bucketsDir)

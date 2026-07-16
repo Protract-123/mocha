@@ -4,13 +4,16 @@ import (
 	"fmt"
 
 	"github.com/Protract-123/mocha/bucket"
+	"github.com/Protract-123/mocha/config"
 )
 
 type UpdateCommand struct {
 	Buckets []string `arg:"positional" help:"buckets to update; updates all buckets if omitted (e.g. main)"`
 }
 
-func (cmd *UpdateCommand) Run(mochaDir string) error {
+func (cmd *UpdateCommand) Run() error {
+	mochaDir := config.Current().MochaDirectory
+
 	if err := bucket.UpdateKnownBuckets(mochaDir); err != nil {
 		return fmt.Errorf("failed to update known buckets: %w", err)
 	}

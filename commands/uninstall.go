@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/manifest"
 	"github.com/Protract-123/mocha/output"
 	"github.com/Protract-123/mocha/pkg"
@@ -14,7 +15,9 @@ type UninstallCommand struct {
 	Apps []string `arg:"positional,required" help:"apps to uninstall; omit @version to remove all installed versions (e.g. git, bat@0.26.1)"`
 }
 
-func (cmd *UninstallCommand) Run(mochaDir string) error {
+func (cmd *UninstallCommand) Run() error {
+	mochaDir := config.Current().MochaDirectory
+
 	for _, refString := range cmd.Apps {
 		manifestRef, err := manifest.ParseRefString(refString)
 		if err != nil {

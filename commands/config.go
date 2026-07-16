@@ -11,8 +11,8 @@ import (
 
 type ConfigCommand struct{}
 
-func (cmd *ConfigCommand) Run(mochaDir string) error {
-	configPath, err := config.Location(mochaDir)
+func (cmd *ConfigCommand) Run() error {
+	configPath, err := config.Location(config.Current().MochaDirectory)
 	if errors.Is(err, config.ErrNotFound) {
 		if err := config.WriteDefault(configPath); err != nil {
 			return fmt.Errorf("failed to write default config: %w", err)

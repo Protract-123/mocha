@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/fileops"
 	"github.com/Protract-123/mocha/manifest"
 	"github.com/Protract-123/mocha/output"
@@ -22,19 +23,19 @@ type clearCacheCommand struct {
 	All   bool     `arg:"-a,--all" help:"clear all cache items"`
 }
 
-func (cmd *CacheCommand) Run(mochaDir string) error {
+func (cmd *CacheCommand) Run() error {
 	switch {
 	case cmd.Show != nil:
-		return cmd.Show.Run(mochaDir)
+		return cmd.Show.Run()
 	case cmd.Clear != nil:
-		return cmd.Clear.Run(mochaDir)
+		return cmd.Clear.Run()
 	default:
 		return arg.ErrHelp
 	}
 }
 
-func (cmd *showCacheCommand) Run(mochaDir string) error {
-	cacheItems, err := fileops.GetCacheItems(mochaDir)
+func (cmd *showCacheCommand) Run() error {
+	cacheItems, err := fileops.GetCacheItems(config.Current().MochaDirectory)
 	if err != nil {
 		return fmt.Errorf("failed to get cache items: %w", err)
 	}
@@ -105,12 +106,12 @@ func convertToHumanReadable(bytes int64) string {
 	return fmt.Sprintf("%.2f %s", value, unit)
 }
 
-func (cmd *clearCacheCommand) Run(mochaDir string) error {
+func (cmd *clearCacheCommand) Run() error {
 	if len(cmd.Items) == 0 && !cmd.All {
 		return arg.ErrHelp
 	}
 
-	cacheItems, err := fileops.GetCacheItems(mochaDir)
+	cacheItems, err := fileops.GetCacheItems(config.Current().MochaDirectory)
 	if err != nil {
 		return fmt.Errorf("failed to get cache items: %w", err)
 	}

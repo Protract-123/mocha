@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/manifest"
 	"github.com/Protract-123/mocha/output"
 	"github.com/Protract-123/mocha/pkg"
@@ -13,11 +14,13 @@ type InstallCommand struct {
 	Force bool     `arg:"-f,--force" help:"ignore cache hits"`
 }
 
-func (cmd *InstallCommand) Run(mochaDir string) error {
+func (cmd *InstallCommand) Run() error {
 	downloadArch, err := pkg.GetDownloadArch()
 	if err != nil {
 		return fmt.Errorf("failed to get system architecture: %w", err)
 	}
+
+	mochaDir := config.Current().MochaDirectory
 
 	for _, refString := range cmd.Apps {
 		manifestRef, err := manifest.ParseRefString(refString)

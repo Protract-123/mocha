@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/Protract-123/mocha/bucket"
+	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/output"
 	"github.com/alexflint/go-arg"
 )
@@ -28,22 +29,24 @@ type addBucketCommand struct {
 	URL  *url.URL `arg:"positional" help:"git repository URL for the bucket; omit to use a known bucket"`
 }
 
-func (cmd *BucketCommand) Run(mochaDir string) error {
+func (cmd *BucketCommand) Run() error {
 	switch {
 	case cmd.Add != nil:
-		return cmd.Add.Run(mochaDir)
+		return cmd.Add.Run()
 	case cmd.Known != nil:
-		return cmd.Known.Run(mochaDir)
+		return cmd.Known.Run()
 	case cmd.Remove != nil:
-		return cmd.Remove.Run(mochaDir)
+		return cmd.Remove.Run()
 	case cmd.List != nil:
-		return cmd.List.Run(mochaDir)
+		return cmd.List.Run()
 	default:
 		return arg.ErrHelp
 	}
 }
 
-func (cmd *listBucketsCommand) Run(mochaDir string) error {
+func (cmd *listBucketsCommand) Run() error {
+	mochaDir := config.Current().MochaDirectory
+
 	bucketMetadata, err := bucket.GetAllBucketMetadata(mochaDir)
 	if err != nil {
 		return fmt.Errorf("failed to get bucket metadata: %w", err)
@@ -73,8 +76,8 @@ func (cmd *listBucketsCommand) Run(mochaDir string) error {
 	return nil
 }
 
-func (cmd *knownBucketsCommand) Run(mochaDir string) error {
-	knownBuckets, err := bucket.GetKnownBuckets(mochaDir)
+func (cmd *knownBucketsCommand) Run() error {
+	knownBuckets, err := bucket.GetKnownBuckets(config.Current().MochaDirectory)
 	if err != nil {
 		return fmt.Errorf("failed to get known buckets: %w", err)
 	}
@@ -86,18 +89,20 @@ func (cmd *knownBucketsCommand) Run(mochaDir string) error {
 	return nil
 }
 
-func (cmd *removeBucketCommand) Run(mochaDir string) error {
-	if err := bucket.DeleteBucket(cmd.Name, mochaDir); err != nil {
+func (cmd *removeBucketCommand) Run() error {
+	if err := bucket.DeleteBucket(cmd.Name, config.Current().MochaDirectory); err != nil {
 		return fmt.Errorf("failed to delete bucket %q: %w", cmd.Name, err)
 	}
 
 	return nil
 }
 
-func (cmd *addBucketCommand) Run(mochaDir string) error {
+func (cmd *addBucketCommand) Run() error {
 	if _, err := exec.LookPath("git"); err != nil {
 		return fmt.Errorf("git is required to add buckets")
 	}
+
+	mochaDir := config.Current().MochaDirectory
 
 	var identifiedBucket bucket.Bucket
 

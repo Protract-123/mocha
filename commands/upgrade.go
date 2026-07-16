@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/manifest"
 	"github.com/Protract-123/mocha/output"
 	"github.com/Protract-123/mocha/pkg"
@@ -17,7 +18,7 @@ type UpgradeCommand struct {
 	All  bool     `arg:"-a,--all" help:"upgrade all apps"`
 }
 
-func (cmd *UpgradeCommand) Run(mochaDir string) error {
+func (cmd *UpgradeCommand) Run() error {
 	if len(cmd.Apps) == 0 && !cmd.All {
 		return arg.ErrHelp
 	}
@@ -26,6 +27,8 @@ func (cmd *UpgradeCommand) Run(mochaDir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get system architecture: %w", err)
 	}
+
+	mochaDir := config.Current().MochaDirectory
 
 	var appList []string
 	if cmd.All {

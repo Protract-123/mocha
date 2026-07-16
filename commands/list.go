@@ -5,14 +5,17 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/manifest"
 	"github.com/Protract-123/mocha/output"
 )
 
 type ListCommand struct{}
 
-func (cmd *ListCommand) Run(mochaDir string) error {
+func (cmd *ListCommand) Run() error {
+	mochaDir := config.Current().MochaDirectory
 	appDir := filepath.Join(mochaDir, "apps")
+
 	apps, err := os.ReadDir(appDir)
 	if err != nil {
 		return fmt.Errorf("failed to read apps directory: %w", err)
