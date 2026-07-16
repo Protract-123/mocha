@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/alexflint/go-arg v1.6.1
+	github.com/fatih/color v1.19.0
 	github.com/go-ole/go-ole v1.3.0
 	github.com/sahilm/fuzzy v0.1.3
 	golang.org/x/sync v0.22.0
@@ -14,7 +15,6 @@ require (
 
 require (
 	github.com/alexflint/go-scalar v1.2.0 // indirect
-	github.com/fatih/color v1.19.0 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
+	github.com/mattn/go-isatty v0.0.23 // indirect
 )
