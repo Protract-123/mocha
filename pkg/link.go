@@ -12,7 +12,7 @@ import (
 	"github.com/Protract-123/mocha/shim"
 )
 
-func LinkApp(ref manifest.Ref, mochaDir string) error {
+func Link(ref manifest.Ref, mochaDir string) error {
 	if ref.Name == "" {
 		return fmt.Errorf("package reference doesn't have a name")
 	}
@@ -86,7 +86,7 @@ func LinkApp(ref manifest.Ref, mochaDir string) error {
 	return nil
 }
 
-func UnlinkApp(appName string, mochaDir string) error {
+func Unlink(appName string, mochaDir string) error {
 	currentDir := filepath.Join(mochaDir, "apps", appName, "current")
 
 	installInfo, err := GetInstallInfo(currentDir)

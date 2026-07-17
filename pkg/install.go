@@ -12,14 +12,60 @@ import (
 	"github.com/Protract-123/mocha/manifest"
 )
 
-type InstallOptions struct {
+func Install(pkg Package, downloadResults []DownloadResult, mochaDir string) error {
+	versionDir := filepath.Join(mochaDir, "apps", pkg.Name, pkg.Version)
+	if err := os.MkdirAll(versionDir, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", versionDir, err)
+	}
+
+	innoSetup := manifest.GetInnoSetup(pkg.Json)
+	for _, result := range downloadResults {
+		installOptions := installFileOptions{
+			SubDir:       result.Entry.SubDir,
+			InnoSetup:    innoSetup,
+			RealFileName: result.Filename,
+		}
+
+		if err := installFile(result.DownloadPath, versionDir, mochaDir, installOptions); err != nil {
+			return fmt.Errorf("failed to install %s: %w", result.Filename, err)
+		}
+	}
+
+	if err := createPersistLinks(pkg.Ref, pkg.Json, mochaDir); err != nil {
+		return fmt.Errorf("failed to create persist links: %w", err)
+	}
+
+	installJsonFile, err := os.Create(filepath.Join(versionDir, "install.json"))
+	if err != nil {
+		return fmt.Errorf("failed to create install.json: %w", err)
+	}
+
+	installInfo := InstallInfo{
+		Bucket:  pkg.Bucket,
+		Version: pkg.Version,
+		Arch:    pkg.Arch,
+	}
+
+	jsonEncoder := json.NewEncoder(installJsonFile)
+	if err := jsonEncoder.Encode(installInfo); err != nil {
+		return fmt.Errorf("failed to write install info to install.json: %w", err)
+	}
+
+	if err := fileops.CopyFile(pkg.ManifestPath, filepath.Join(versionDir, "manifest.json")); err != nil {
+		return fmt.Errorf("failed to copy app manifest to install location: %w", err)
+	}
+
+	return nil
+}
+
+type installFileOptions struct {
 	SubDir string
 
 	InnoSetup    bool
 	RealFileName string
 }
 
-func InstallPackageFile(filePath string, installDir string, mochaDir string, options InstallOptions) error {
+func installFile(filePath string, installDir string, mochaDir string, options installFileOptions) error {
 	extension := filepath.Ext(filePath)
 	fileName := strings.TrimSuffix(filepath.Base(filePath), extension)
 
@@ -63,66 +109,6 @@ func InstallPackageFile(filePath string, installDir string, mochaDir string, opt
 	extractedDir := filepath.Join(tempDir, options.SubDir)
 	if err := fileops.MergeDir(extractedDir, installDir); err != nil {
 		return fmt.Errorf("failed to merge %s into %s: %w", extractedDir, installDir, err)
-	}
-
-	return nil
-}
-
-func InstallApp(ref manifest.Ref, downloadArch string, force bool, mochaDir string) error {
-	downloadResults, err := DownloadPackageFiles(ref, downloadArch, force, mochaDir)
-	if err != nil {
-		return fmt.Errorf("failed to download manifest files: %w", err)
-	}
-
-	versionDir := filepath.Join(mochaDir, "apps", ref.Name, ref.Version)
-	if err := os.MkdirAll(versionDir, os.ModePerm); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", versionDir, err)
-	}
-
-	manifestJson, err := manifest.GetJson(ref.ManifestPath)
-	if err != nil {
-		return fmt.Errorf("failed to get manifest JSON: %w", err)
-	}
-
-	innoSetup := manifest.GetInnoSetup(manifestJson)
-	for _, result := range downloadResults {
-		installOptions := InstallOptions{
-			SubDir:       result.Entry.SubDir,
-			InnoSetup:    innoSetup,
-			RealFileName: result.RealFilename,
-		}
-
-		if err := InstallPackageFile(result.DownloadPath, versionDir, mochaDir, installOptions); err != nil {
-			return fmt.Errorf("failed to install %s: %w", result.Filename, err)
-		}
-	}
-
-	if err := createPersistLinks(ref, manifestJson, mochaDir); err != nil {
-		return fmt.Errorf("failed to create persist links: %w", err)
-	}
-
-	installJsonFile, err := os.Create(filepath.Join(versionDir, "install.json"))
-	if err != nil {
-		return fmt.Errorf("failed to create install.json: %w", err)
-	}
-
-	installInfo := InstallInfo{
-		Bucket:  ref.Bucket,
-		Version: ref.Version,
-		Arch:    downloadArch,
-	}
-
-	jsonEncoder := json.NewEncoder(installJsonFile)
-	if err := jsonEncoder.Encode(installInfo); err != nil {
-		return fmt.Errorf("failed to write install info to install.json: %w", err)
-	}
-
-	if err := fileops.CopyFile(ref.ManifestPath, filepath.Join(versionDir, "manifest.json")); err != nil {
-		return fmt.Errorf("failed to copy app manifest to install location: %w", err)
-	}
-
-	if err := LinkApp(ref, mochaDir); err != nil {
-		return fmt.Errorf("failed to link app: %w", err)
 	}
 
 	return nil

@@ -1,11 +1,11 @@
 package pkg
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -18,16 +18,15 @@ type DownloadResult struct {
 	Entry        manifest.DownloadEntry
 	DownloadPath string
 	Filename     string
-	RealFilename string
 }
 
-func DownloadPackageFiles(manifestRef manifest.Ref, downloadArch string, force bool, mochaDir string) ([]DownloadResult, error) {
-	manifestJson, err := manifest.GetJson(manifestRef.ManifestPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get manifest JSON: %w", err)
-	}
+type DownloadOptions struct {
+	Force      bool
+	SkipVerify bool
+}
 
-	downloadEntries, err := manifest.GetDownloadEntries(manifestJson, downloadArch)
+func Download(pkg Package, mochaDir string, options DownloadOptions) ([]DownloadResult, error) {
+	downloadEntries, err := manifest.GetDownloadEntries(pkg.Json, pkg.Arch)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get manifest downloads: %w", err)
 	}
@@ -35,13 +34,19 @@ func DownloadPackageFiles(manifestRef manifest.Ref, downloadArch string, force b
 	downloadResults := make([]DownloadResult, 0, len(downloadEntries))
 
 	for _, entry := range downloadEntries {
-		downloadPath, err := fileops.GetCachePath(mochaDir, manifestRef.Name, manifestRef.Version, entry.URL)
+		filename := getFileNameFromUrl(entry.URL)
+
+		downloadPath, err := fileops.GetCachePath(mochaDir, pkg.Name, pkg.Version, entry.URL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get cache path: %w", err)
 		}
-		filename := filepath.Base(downloadPath)
 
-		if _, err := os.Stat(downloadPath); err != nil || force {
+		cached, err := isCached(downloadPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check cache path: %w", err)
+		}
+
+		if !cached || options.Force {
 			output.LogOutput(fmt.Sprintf("Downloading %s to %s", entry.URL, downloadPath))
 			if err := fileops.DownloadFile(entry.URL, downloadPath); err != nil {
 				return nil, fmt.Errorf("failed to download %s: %w", filename, err)
@@ -51,47 +56,58 @@ func DownloadPackageFiles(manifestRef manifest.Ref, downloadArch string, force b
 			output.LogOutput(fmt.Sprintf("Cache hit, skipping %s", filename))
 		}
 
-		if err := fileops.VerifyHash(downloadPath, entry.Hash); err != nil {
-			_ = os.Remove(downloadPath)
-			return nil, fmt.Errorf("failed to verify %s: %w", filename, err)
+		if !options.SkipVerify {
+			if err := fileops.VerifyHash(downloadPath, entry.Hash); err != nil {
+				_ = os.Remove(downloadPath)
+				return nil, fmt.Errorf("failed to verify %s: %w", filename, err)
+			}
+			output.LogOutput(fmt.Sprintf("Verified %s\n", filename))
 		}
-
-		output.LogOutput(fmt.Sprintf("Verified %s\n", filename))
 
 		downloadResults = append(downloadResults, DownloadResult{
 			Entry:        entry,
 			DownloadPath: downloadPath,
 			Filename:     filename,
-			RealFilename: getFileNameFromUrl(entry.URL),
 		})
 	}
 
 	return downloadResults, nil
 }
 
-func GetDownloadArch() (string, error) {
-	cpuArch := runtime.GOARCH
-
-	if cpuArch == "386" {
+func DownloadArch() (string, error) {
+	switch runtime.GOARCH {
+	case "386":
 		return "32bit", nil
-	} else if cpuArch == "amd64" {
+	case "amd64":
 		return "64bit", nil
-	} else if cpuArch == "arm64" {
+	case "arm64":
 		return "arm64", nil
+	default:
+		return "", fmt.Errorf("cpu architecture %q is unsupported", runtime.GOARCH)
 	}
-
-	return "", fmt.Errorf("cpu architecture %q is unsupported", cpuArch)
 }
 
 func getFileNameFromUrl(rawUrl string) string {
-	realFilename := path.Base(rawUrl)
+	filename := path.Base(rawUrl)
 	if parsedURL, parseErr := url.Parse(rawUrl); parseErr == nil {
 		if strings.HasPrefix(parsedURL.Fragment, "/") {
-			realFilename = path.Base(parsedURL.Fragment)
+			filename = path.Base(parsedURL.Fragment)
 		} else {
-			realFilename = path.Base(parsedURL.Path)
+			filename = path.Base(parsedURL.Path)
 		}
 	}
 
-	return realFilename
+	return filename
+}
+
+func isCached(path string) (bool, error) {
+	_, err := os.Stat(path)
+	switch {
+	case err == nil:
+		return true, nil
+	case errors.Is(err, os.ErrNotExist):
+		return false, nil
+	default:
+		return false, err
+	}
 }

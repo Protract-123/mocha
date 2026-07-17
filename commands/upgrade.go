@@ -14,8 +14,10 @@ import (
 )
 
 type UpgradeCommand struct {
-	Apps []string `arg:"positional" help:"apps to upgrade (e.g. git, 7zip)"`
-	All  bool     `arg:"-a,--all" help:"upgrade all apps"`
+	Apps       []string `arg:"positional" help:"apps to upgrade (e.g. git, 7zip)"`
+	All        bool     `arg:"-a,--all" help:"upgrade all apps"`
+	Force      bool     `arg:"-f,--force" help:"ignore cache hits"`
+	SkipVerify bool     `arg:"-s,--skip-verify" help:"skip hash check"`
 }
 
 func (cmd *UpgradeCommand) Run() error {
@@ -23,7 +25,7 @@ func (cmd *UpgradeCommand) Run() error {
 		return arg.ErrHelp
 	}
 
-	downloadArch, err := pkg.GetDownloadArch()
+	downloadArch, err := pkg.DownloadArch()
 	if err != nil {
 		return fmt.Errorf("failed to get system architecture: %w", err)
 	}
@@ -69,14 +71,39 @@ func (cmd *UpgradeCommand) Run() error {
 			continue
 		}
 
+		manifestJson, err := manifest.GetJson(manifestRef.ManifestPath)
+		if err != nil {
+			return fmt.Errorf("failed to get manifest JSON: %w", err)
+		}
+
 		output.LogOutput("upgrading " + app)
 
-		if err := pkg.UnlinkApp(app, mochaDir); err != nil {
+		target := pkg.Package{
+			Ref:  manifestRef,
+			Json: manifestJson,
+			Arch: downloadArch,
+		}
+
+		options := pkg.DownloadOptions{
+			Force:      cmd.Force,
+			SkipVerify: cmd.SkipVerify,
+		}
+
+		downloadResults, err := pkg.Download(target, mochaDir, options)
+		if err != nil {
+			return fmt.Errorf("failed to download manifest files: %w", err)
+		}
+
+		if err := pkg.Install(target, downloadResults, mochaDir); err != nil {
+			return fmt.Errorf("failed to install %s: %w", app, err)
+		}
+
+		if err := pkg.Unlink(app, mochaDir); err != nil {
 			return fmt.Errorf("failed to unlink old version of %s: %w", app, err)
 		}
 
-		if err := pkg.InstallApp(manifestRef, downloadArch, false, mochaDir); err != nil {
-			return fmt.Errorf("failed to install %s: %w", app, err)
+		if err := pkg.Link(target.Ref, mochaDir); err != nil {
+			return fmt.Errorf("failed to link app: %w", err)
 		}
 
 		output.LogOutput(fmt.Sprintf("Upgraded %s", app))

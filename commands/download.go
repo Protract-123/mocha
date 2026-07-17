@@ -11,12 +11,13 @@ import (
 // TODO: add more/better logging, like a progress bar
 
 type DownloadCommand struct {
-	Apps  []string `arg:"positional,required" help:"apps to download (e.g. git, bat@0.26.1)"`
-	Force bool     `arg:"-f,--force" help:"ignore cache hits"`
+	Apps       []string `arg:"positional,required" help:"apps to download (e.g. git, bat@0.26.1)"`
+	Force      bool     `arg:"-f,--force" help:"ignore cache hits"`
+	SkipVerify bool     `arg:"-s,--skip-verify" help:"skip hash check"`
 }
 
 func (cmd *DownloadCommand) Run() error {
-	downloadArch, err := pkg.GetDownloadArch()
+	downloadArch, err := pkg.DownloadArch()
 	if err != nil {
 		return fmt.Errorf("failed to get system architecture: %w", err)
 	}
@@ -34,7 +35,23 @@ func (cmd *DownloadCommand) Run() error {
 			return fmt.Errorf("failed to get %q manifest details: %w", refString, err)
 		}
 
-		if _, err := pkg.DownloadPackageFiles(manifestRef, downloadArch, cmd.Force, mochaDir); err != nil {
+		manifestJson, err := manifest.GetJson(manifestRef.ManifestPath)
+		if err != nil {
+			return fmt.Errorf("failed to get manifest JSON: %w", err)
+		}
+
+		target := pkg.Package{
+			Ref:  manifestRef,
+			Json: manifestJson,
+			Arch: downloadArch,
+		}
+
+		options := pkg.DownloadOptions{
+			Force:      cmd.Force,
+			SkipVerify: cmd.SkipVerify,
+		}
+
+		if _, err := pkg.Download(target, mochaDir, options); err != nil {
 			return fmt.Errorf("failed to download manifest files: %w", err)
 		}
 	}

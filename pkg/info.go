@@ -10,6 +10,12 @@ import (
 	"github.com/Protract-123/mocha/manifest"
 )
 
+type Package struct {
+	manifest.Ref
+	Json map[string]any
+	Arch string
+}
+
 type InstallInfo struct {
 	Bucket  string `json:"bucket"`
 	Version string `json:"version"`

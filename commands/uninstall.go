@@ -46,7 +46,7 @@ func (cmd *UninstallCommand) Run() error {
 
 		if activeVersion != "" && (activeVersion == manifestRef.Version || manifestRef.Version == "") {
 			output.LogOutput("removing shims/shortcuts for " + refString)
-			if err := pkg.UnlinkApp(manifestRef.Name, mochaDir); err != nil {
+			if err := pkg.Unlink(manifestRef.Name, mochaDir); err != nil {
 				return fmt.Errorf("failed to unlink app %q: %w", manifestRef.Name, err)
 			}
 		}
