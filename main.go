@@ -60,6 +60,7 @@ func run() error {
 
 	configuration.MochaDirectory = mochaDirectory
 	config.Init(configuration)
+	output.InitTheme()
 
 	if errors.Is(err, config.ErrNotFound) {
 		output.LogWarning("failed to find mocha.toml, using defaults")

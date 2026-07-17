@@ -53,13 +53,13 @@ func TestWriteDefault(tester *testing.T) {
 	}
 }
 
-func TestDefaultConfigMatchesFile(tester *testing.T) {
+func TestDefaultMatchesFile(tester *testing.T) {
 	var configFromFile MochaConfiguration
 	if _, err := toml.DecodeFile("default_config.toml", &configFromFile); err != nil {
 		tester.Fatalf("failed to decode default_config.toml: %v", err)
 	}
 
-	if !reflect.DeepEqual(configFromFile, defaultConfig) {
+	if !reflect.DeepEqual(configFromFile, Default()) {
 		tester.Errorf("default_config.toml is out of sync with DefaultConfig()")
 	}
 }

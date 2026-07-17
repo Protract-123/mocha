@@ -9,18 +9,20 @@ import (
 //go:embed default_config.toml
 var defaultConfigToml []byte
 
-var defaultConfig = MochaConfiguration{
-	Cat: CatConfig{
-		IncludeDeprecated: false,
-		Command:           "",
-	},
-	Colors: ColorConfig{
-		AccentColor: "purple",
-		ErrorColor:  "red",
-		WarnColor:   "yellow",
-		InfoColor:   "blue",
-	},
-	MochaDirectory: "",
+func Default() MochaConfiguration {
+	return MochaConfiguration{
+		Cat: CatConfig{
+			IncludeDeprecated: false,
+			Command:           "",
+		},
+		Colors: ColorConfig{
+			AccentColor:  "magenta",
+			ErrorColor:   "red",
+			WarningColor: "yellow",
+			InfoColor:    "blue",
+		},
+		MochaDirectory: "",
+	}
 }
 
 func WriteDefault(path string) error {

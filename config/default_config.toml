@@ -9,7 +9,7 @@ include-deprecated = false
 command = ""
 
 [colors]
-accent = "purple"
+accent = "magenta"
 error = "red"
 warning = "yellow"
 info = "blue"

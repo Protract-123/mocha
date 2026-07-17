@@ -39,19 +39,19 @@ func LogError(providedError error) {
 		}
 	}
 
-	if _, err := color.New(color.FgRed).Fprintln(os.Stderr, sb.String()); err != nil {
+	if _, err := activeTheme.ErrorColor.Fprintln(os.Stderr, sb.String()); err != nil {
 		return
 	}
 }
 
 func LogWarning(message string) {
-	if _, err := color.New(color.FgYellow).Fprintln(os.Stderr, message); err != nil {
+	if _, err := activeTheme.WarningColor.Fprintln(os.Stderr, message); err != nil {
 		return
 	}
 }
 
 func LogInfo(message string) {
-	if _, err := color.New(color.FgBlue).Fprintln(os.Stderr, message); err != nil {
+	if _, err := activeTheme.InfoColor.Fprintln(os.Stderr, message); err != nil {
 		return
 	}
 }

@@ -32,7 +32,7 @@ func Load(mochaDir string) (MochaConfiguration, error) {
 	configPath, err := Location(mochaDir)
 
 	if errors.Is(err, ErrNotFound) {
-		return defaultConfig, ErrNotFound
+		return Default(), ErrNotFound
 	} else if err != nil {
 		return MochaConfiguration{}, fmt.Errorf("failed to get config path: %w", err)
 	}
