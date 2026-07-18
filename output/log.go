@@ -44,19 +44,34 @@ func LogError(providedError error) {
 	}
 }
 
-func LogWarning(message string) {
+func LogWarning(format string, args ...any) {
+	message := format
+	if len(args) > 0 {
+		message = fmt.Sprintf(format, args...)
+	}
+
 	if _, err := activeTheme.WarningColor.Fprintln(os.Stderr, message); err != nil {
 		return
 	}
 }
 
-func LogInfo(message string) {
+func LogInfo(format string, args ...any) {
+	message := format
+	if len(args) > 0 {
+		message = fmt.Sprintf(format, args...)
+	}
+
 	if _, err := activeTheme.InfoColor.Fprintln(os.Stderr, message); err != nil {
 		return
 	}
 }
 
-func LogOutput(message string) {
+func LogOutput(format string, args ...any) {
+	message := format
+	if len(args) > 0 {
+		message = fmt.Sprintf(format, args...)
+	}
+
 	if _, err := color.New(color.FgWhite).Fprintln(os.Stderr, message); err != nil {
 		return
 	}

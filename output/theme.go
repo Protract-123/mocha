@@ -23,7 +23,7 @@ func InitTheme() {
 	initThemeOnce.Do(func() {
 		userTheme, err := resolveTheme(config.Current().Colors)
 		if err != nil {
-			LogWarning(fmt.Sprintf("warning: %v, using default theme", err))
+			LogWarning("warning: %v, using default theme", err)
 			return
 		}
 

@@ -83,7 +83,7 @@ func (cmd *knownBucketsCommand) Run() error {
 	}
 
 	for _, entry := range knownBuckets {
-		output.LogOutput(fmt.Sprint(entry.Name, ": ", entry.Source))
+		output.LogOutput(entry.Name + ": " + entry.Source)
 	}
 
 	return nil

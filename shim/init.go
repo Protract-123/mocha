@@ -50,7 +50,7 @@ func InitShimBinary(mochaDir string) error {
 		return fmt.Errorf("failed to create download url: %w", err)
 	}
 
-	output.LogOutput(fmt.Sprintf("Downloading %s from %s\n", zipName, downloadURL))
+	output.LogOutput("Downloading %s from %s\n", zipName, downloadURL)
 
 	if err := fileops.DownloadFile(downloadURL, zipPath); err != nil {
 		return fmt.Errorf("failed to download %s: %w", zipName, err)
