@@ -85,7 +85,7 @@ func GetAllShims(mochaDir string) ([]Info, error) {
 			}
 
 			name := strings.TrimSuffix(shim.Name(), ".shim")
-			target := strings.Split(string(shimBytes), "=")[1]
+			target := strings.TrimSpace(strings.Split(string(shimBytes), "=")[1])
 
 			shimInfo = append(shimInfo, Info{name, target})
 		}

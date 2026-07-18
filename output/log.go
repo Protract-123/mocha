@@ -72,7 +72,7 @@ func LogOutput(format string, args ...any) {
 		message = fmt.Sprintf(format, args...)
 	}
 
-	if _, err := color.New(color.FgWhite).Fprintln(os.Stderr, message); err != nil {
+	if _, err := color.New(color.FgWhite).Fprintln(os.Stdout, message); err != nil {
 		return
 	}
 }

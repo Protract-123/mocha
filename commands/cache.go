@@ -81,11 +81,21 @@ func (cmd *showCacheCommand) Run() error {
 		totalBytes += item.Size
 	}
 
-	if err := output.PrintTable(headers, rows); err != nil {
+	tableConfig := output.TableConfig{
+		Spacing: 2,
+		Alignments: []output.Alignment{
+			output.LeftAlign,
+			output.LeftAlign,
+			output.RightAlign,
+		},
+		BorderStyle: output.LightBorder,
+	}
+
+	if err := output.PrintTable(headers, rows, tableConfig); err != nil {
 		return fmt.Errorf("failed to display cache items: %w", err)
 	}
 
-	fmt.Printf("\nTotal Size: %s\n", convertToHumanReadable(totalBytes))
+	output.LogOutput("Total Size: %s", convertToHumanReadable(totalBytes))
 
 	return nil
 }

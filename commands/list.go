@@ -51,9 +51,17 @@ func (cmd *ListCommand) Run() error {
 		}
 	}
 
-	rows = append(rows, []string{})
+	tableConfig := output.TableConfig{
+		Spacing: 2,
+		Alignments: []output.Alignment{
+			output.LeftAlign,
+			output.LeftAlign,
+			output.LeftAlign,
+		},
+		BorderStyle: output.LightBorder,
+	}
 
-	if err := output.PrintTable(headers, rows); err != nil {
+	if err := output.PrintTable(headers, rows, tableConfig); err != nil {
 		return fmt.Errorf("failed to print app info table: %w", err)
 	}
 	return nil

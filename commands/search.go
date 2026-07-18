@@ -86,7 +86,7 @@ func (cmd *SearchCommand) Run() error {
 
 func outputResults(matches []string, mochaDir string) error {
 	headers := []string{"Name", "Bucket", "Version"}
-	rows := make([][]string, len(matches)+1)
+	rows := make([][]string, len(matches))
 
 	for index, result := range matches {
 		manifestRef, err := manifest.ParseRefString(result)
@@ -102,7 +102,17 @@ func outputResults(matches []string, mochaDir string) error {
 		rows[index] = []string{manifestRef.Name, manifestRef.Bucket, manifestRef.Version}
 	}
 
-	if err := output.PrintTable(headers, rows); err != nil {
+	tableConfig := output.TableConfig{
+		Spacing: 2,
+		Alignments: []output.Alignment{
+			output.LeftAlign,
+			output.LeftAlign,
+			output.LeftAlign,
+		},
+		BorderStyle: output.LightBorder,
+	}
+
+	if err := output.PrintTable(headers, rows, tableConfig); err != nil {
 		return fmt.Errorf("failed to output table: %w", err)
 	}
 

@@ -88,7 +88,16 @@ func (cmd *listShimCommand) Run() error {
 		}
 	}
 
-	if err := output.PrintTable(headers, rows); err != nil {
+	tableConfig := output.TableConfig{
+		Spacing: 2,
+		Alignments: []output.Alignment{
+			output.LeftAlign,
+			output.LeftAlign,
+		},
+		BorderStyle: output.LightBorder,
+	}
+
+	if err := output.PrintTable(headers, rows, tableConfig); err != nil {
 		return fmt.Errorf("failed to print shim info table: %w", err)
 	}
 
