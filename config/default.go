@@ -16,7 +16,7 @@ func Default() MochaConfiguration {
 			Command:           "",
 		},
 		Colors: ColorConfig{
-			AccentColor:  "magenta",
+			SuccessColor: "magenta",
 			ErrorColor:   "red",
 			WarningColor: "yellow",
 			InfoColor:    "blue",

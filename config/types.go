@@ -13,7 +13,7 @@ type CatConfig struct {
 }
 
 type ColorConfig struct {
-	AccentColor  string `toml:"accent"`
+	SuccessColor string `toml:"success"`
 	ErrorColor   string `toml:"error"`
 	WarningColor string `toml:"warning"`
 	InfoColor    string `toml:"info"`

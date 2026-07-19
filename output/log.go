@@ -9,6 +9,17 @@ import (
 	"github.com/fatih/color"
 )
 
+func LogSuccess(format string, args ...any) {
+	message := format
+	if len(args) > 0 {
+		message = fmt.Sprintf(format, args...)
+	}
+
+	if _, err := activeTheme.SuccessColor.Fprintln(os.Stderr, message); err != nil {
+		return
+	}
+}
+
 func LogError(providedError error) {
 	if providedError == nil {
 		return
@@ -72,7 +83,7 @@ func LogOutput(format string, args ...any) {
 		message = fmt.Sprintf(format, args...)
 	}
 
-	if _, err := color.New(color.FgWhite).Fprintln(os.Stdout, message); err != nil {
+	if _, err := color.New().Fprintln(os.Stdout, message); err != nil {
 		return
 	}
 }

@@ -10,7 +10,7 @@ import (
 )
 
 type Theme struct {
-	AccentColor  color.Color
+	SuccessColor color.Color
 	ErrorColor   color.Color
 	WarningColor color.Color
 	InfoColor    color.Color
@@ -32,13 +32,13 @@ func InitTheme() {
 }
 
 func buildTheme(cc config.ColorConfig) Theme {
-	accent, _ := resolveColor(cc.AccentColor)
+	success, _ := resolveColor(cc.SuccessColor)
 	errorColor, _ := resolveColor(cc.ErrorColor)
 	warning, _ := resolveColor(cc.WarningColor)
 	info, _ := resolveColor(cc.InfoColor)
 
 	return Theme{
-		AccentColor:  accent,
+		SuccessColor: success,
 		ErrorColor:   errorColor,
 		WarningColor: warning,
 		InfoColor:    info,
@@ -46,9 +46,9 @@ func buildTheme(cc config.ColorConfig) Theme {
 }
 
 func resolveTheme(cc config.ColorConfig) (Theme, error) {
-	accent, err := resolveColor(cc.AccentColor)
+	success, err := resolveColor(cc.SuccessColor)
 	if err != nil {
-		return Theme{}, fmt.Errorf("theme.accent: %w", err)
+		return Theme{}, fmt.Errorf("theme.success: %w", err)
 	}
 
 	errorColor, err := resolveColor(cc.ErrorColor)
@@ -67,7 +67,7 @@ func resolveTheme(cc config.ColorConfig) (Theme, error) {
 	}
 
 	return Theme{
-		AccentColor:  accent,
+		SuccessColor: success,
 		ErrorColor:   errorColor,
 		WarningColor: warning,
 		InfoColor:    info,
