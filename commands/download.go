@@ -5,6 +5,7 @@ import (
 
 	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/manifest"
+	"github.com/Protract-123/mocha/output"
 	"github.com/Protract-123/mocha/pkg"
 )
 
@@ -54,6 +55,8 @@ func (cmd *DownloadCommand) Run() error {
 		if _, err := pkg.Download(target, mochaDir, options); err != nil {
 			return fmt.Errorf("failed to download manifest files: %w", err)
 		}
+
+		output.LogSuccess("successfully downloaded %q", refString)
 	}
 	return nil
 }

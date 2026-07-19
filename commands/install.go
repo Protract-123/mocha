@@ -63,7 +63,7 @@ func (cmd *InstallCommand) Run() error {
 			return fmt.Errorf("failed to link app: %w", err)
 		}
 
-		output.LogOutput("Installed " + manifestRef.Name)
+		output.LogSuccess("successfully installed %q", manifestRef.Name)
 	}
 
 	return nil

@@ -121,6 +121,7 @@ func (cmd *removeBucketCommand) Run() error {
 		return fmt.Errorf("failed to delete bucket %q: %w", cmd.Name, err)
 	}
 
+	output.LogSuccess("successfully deleted bucket %q", cmd.Name)
 	return nil
 }
 
@@ -154,5 +155,6 @@ func (cmd *addBucketCommand) Run() error {
 		return fmt.Errorf("failed to download bucket %q: %w", identifiedBucket.Name, err)
 	}
 
+	output.LogSuccess("successfully added bucket %q", identifiedBucket.Name)
 	return nil
 }

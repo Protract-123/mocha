@@ -57,6 +57,7 @@ func (cmd *addShimCommand) Run() error {
 		return fmt.Errorf("failed to create shim: %w", err)
 	}
 
+	output.LogSuccess("successfully created shim %q", cmd.Name)
 	return nil
 }
 
@@ -65,6 +66,7 @@ func (cmd *removeShimCommand) Run() error {
 		return fmt.Errorf("failed to delete shim: %w", err)
 	}
 
+	output.LogSuccess("successfully deleted shim %q", cmd.Name)
 	return nil
 }
 

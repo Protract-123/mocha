@@ -69,7 +69,7 @@ func (cmd *UninstallCommand) Run() error {
 			}
 		}
 
-		output.LogOutput("successfully uninstalled %q\n", refString)
+		output.LogSuccess("successfully uninstalled %q", refString)
 	}
 
 	return nil

@@ -133,6 +133,7 @@ func (cmd *clearCacheCommand) Run() error {
 			}
 		}
 
+		output.LogSuccess("successfully deleted all cache items")
 		return nil
 	}
 
@@ -155,6 +156,8 @@ func (cmd *clearCacheCommand) Run() error {
 				return fmt.Errorf("failed to remove cache item %q: %w", cacheItem.Path, err)
 			}
 		}
+
+		output.LogSuccess("successfully deleted cache for %q", refString)
 	}
 
 	return nil

@@ -5,6 +5,7 @@ import (
 
 	"github.com/Protract-123/mocha/bucket"
 	"github.com/Protract-123/mocha/config"
+	"github.com/Protract-123/mocha/output"
 )
 
 type UpdateCommand struct {
@@ -23,6 +24,7 @@ func (cmd *UpdateCommand) Run() error {
 			return fmt.Errorf("failed to update all buckets: %w", err)
 		}
 
+		output.LogSuccess("successfully updated all buckets")
 		return nil
 	}
 
@@ -30,6 +32,8 @@ func (cmd *UpdateCommand) Run() error {
 		if err := bucket.UpdateBucket(entry, mochaDir); err != nil {
 			return fmt.Errorf("failed to update bucket %q: %w", entry, err)
 		}
+
+		output.LogSuccess("successfully updated bucket %q", entry)
 	}
 
 	return nil

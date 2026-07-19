@@ -106,7 +106,7 @@ func (cmd *UpgradeCommand) Run() error {
 			return fmt.Errorf("failed to link app: %w", err)
 		}
 
-		output.LogOutput("Upgraded " + app)
+		output.LogSuccess("successfully upgraded %q", app)
 	}
 
 	return nil
