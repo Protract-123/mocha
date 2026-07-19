@@ -93,8 +93,24 @@ func (cmd *knownBucketsCommand) Run() error {
 		return fmt.Errorf("failed to get known buckets: %w", err)
 	}
 
-	for _, entry := range knownBuckets {
-		output.LogOutput(entry.Name + ": " + entry.Source)
+	headers := []string{"Name", "Source"}
+	rows := make([][]string, len(knownBuckets))
+
+	for i, entry := range knownBuckets {
+		rows[i] = []string{entry.Name, entry.Source}
+	}
+
+	tableConfig := output.TableConfig{
+		Spacing: 2,
+		Alignments: []output.Alignment{
+			output.LeftAlign,
+			output.LeftAlign,
+		},
+		BorderStyle: output.LightBorder,
+	}
+
+	if err := output.PrintTable(headers, rows, tableConfig); err != nil {
+		return fmt.Errorf("failed to display bucket metadata: %w", err)
 	}
 
 	return nil
