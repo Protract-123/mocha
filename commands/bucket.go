@@ -14,34 +14,77 @@ import (
 
 type BucketCommand struct {
 	Add    *addBucketCommand    `arg:"subcommand:add" help:"add a bucket by name or git repository URL"`
-	Known  *knownBucketsCommand `arg:"subcommand:known" help:"list known buckets available to add by name"`
 	Remove *removeBucketCommand `arg:"subcommand:remove" help:"remove an installed bucket"`
 	List   *listBucketsCommand  `arg:"subcommand:list" help:"list installed buckets"`
+	Known  *knownBucketsCommand `arg:"subcommand:known" help:"list known buckets available to add by name"`
 }
 
-type listBucketsCommand struct{}
-type knownBucketsCommand struct{}
-type removeBucketCommand struct {
-	Name string `arg:"positional,required" help:"bucket name (e.g. main)"`
-}
 type addBucketCommand struct {
 	Name string   `arg:"positional,required" help:"bucket name (e.g. main)"`
 	URL  *url.URL `arg:"positional" help:"git repository URL for the bucket; omit to use a known bucket"`
 }
+type removeBucketCommand struct {
+	Name string `arg:"positional,required" help:"bucket name (e.g. main)"`
+}
+type listBucketsCommand struct{}
+type knownBucketsCommand struct{}
 
 func (cmd *BucketCommand) Run() error {
 	switch {
 	case cmd.Add != nil:
 		return cmd.Add.Run()
-	case cmd.Known != nil:
-		return cmd.Known.Run()
 	case cmd.Remove != nil:
 		return cmd.Remove.Run()
 	case cmd.List != nil:
 		return cmd.List.Run()
+	case cmd.Known != nil:
+		return cmd.Known.Run()
 	default:
 		return arg.ErrHelp
 	}
+}
+
+func (cmd *addBucketCommand) Run() error {
+	if _, err := exec.LookPath("git"); err != nil {
+		return fmt.Errorf("git is required to add buckets")
+	}
+
+	mochaDir := config.Current().MochaDirectory
+
+	var identifiedBucket bucket.Bucket
+
+	if cmd.URL == nil {
+		knownBucket, err := bucket.GetKnownBucket(cmd.Name, mochaDir)
+		if err != nil {
+			return fmt.Errorf("failed to get known bucket: %w", err)
+		}
+		identifiedBucket = knownBucket
+	} else {
+		if (cmd.URL.Scheme != "http" && cmd.URL.Scheme != "https") || cmd.URL.Host == "" {
+			return fmt.Errorf("invalid repository URL %q", cmd.URL.String())
+		}
+
+		identifiedBucket = bucket.Bucket{
+			Name:   cmd.Name,
+			Source: cmd.URL.String(),
+		}
+	}
+
+	if err := bucket.DownloadBucket(identifiedBucket, mochaDir); err != nil {
+		return fmt.Errorf("failed to download bucket %q: %w", identifiedBucket.Name, err)
+	}
+
+	output.LogSuccess("successfully added bucket %q", identifiedBucket.Name)
+	return nil
+}
+
+func (cmd *removeBucketCommand) Run() error {
+	if err := bucket.DeleteBucket(cmd.Name, config.Current().MochaDirectory); err != nil {
+		return fmt.Errorf("failed to delete bucket %q: %w", cmd.Name, err)
+	}
+
+	output.LogSuccess("successfully deleted bucket %q", cmd.Name)
+	return nil
 }
 
 func (cmd *listBucketsCommand) Run() error {
@@ -113,48 +156,5 @@ func (cmd *knownBucketsCommand) Run() error {
 		return fmt.Errorf("failed to display bucket metadata: %w", err)
 	}
 
-	return nil
-}
-
-func (cmd *removeBucketCommand) Run() error {
-	if err := bucket.DeleteBucket(cmd.Name, config.Current().MochaDirectory); err != nil {
-		return fmt.Errorf("failed to delete bucket %q: %w", cmd.Name, err)
-	}
-
-	output.LogSuccess("successfully deleted bucket %q", cmd.Name)
-	return nil
-}
-
-func (cmd *addBucketCommand) Run() error {
-	if _, err := exec.LookPath("git"); err != nil {
-		return fmt.Errorf("git is required to add buckets")
-	}
-
-	mochaDir := config.Current().MochaDirectory
-
-	var identifiedBucket bucket.Bucket
-
-	if cmd.URL == nil {
-		knownBucket, err := bucket.GetKnownBucket(cmd.Name, mochaDir)
-		if err != nil {
-			return fmt.Errorf("failed to get known bucket: %w", err)
-		}
-		identifiedBucket = knownBucket
-	} else {
-		if (cmd.URL.Scheme != "http" && cmd.URL.Scheme != "https") || cmd.URL.Host == "" {
-			return fmt.Errorf("invalid repository URL %q", cmd.URL.String())
-		}
-
-		identifiedBucket = bucket.Bucket{
-			Name:   cmd.Name,
-			Source: cmd.URL.String(),
-		}
-	}
-
-	if err := bucket.DownloadBucket(identifiedBucket, mochaDir); err != nil {
-		return fmt.Errorf("failed to download bucket %q: %w", identifiedBucket.Name, err)
-	}
-
-	output.LogSuccess("successfully added bucket %q", identifiedBucket.Name)
 	return nil
 }
