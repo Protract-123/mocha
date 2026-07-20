@@ -18,42 +18,42 @@ type UninstallCommand struct {
 func (cmd *UninstallCommand) Run() error {
 	mochaDir := config.Current().MochaDirectory
 
-	for _, refString := range cmd.Apps {
-		manifestRef, err := manifest.ParseRefString(refString)
+	for _, spec := range cmd.Apps {
+		info, err := manifest.ParseSpec(spec)
 		if err != nil {
-			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
+			return fmt.Errorf("failed to parse manifest spec %q: %w", spec, err)
 		}
 
-		appDir := filepath.Join(mochaDir, "apps", manifestRef.Name)
+		appDir := filepath.Join(mochaDir, "apps", info.Name)
 		var deletionDir string
 
-		if manifestRef.Version != "" {
-			deletionDir = filepath.Join(appDir, manifestRef.Version)
+		if info.Version != "" {
+			deletionDir = filepath.Join(appDir, info.Version)
 		} else {
 			deletionDir = filepath.Join(appDir)
 		}
 
 		if _, err := os.Stat(deletionDir); os.IsNotExist(err) {
-			return fmt.Errorf("%q is not installed", refString)
+			return fmt.Errorf("%q is not installed", spec)
 		} else if err != nil {
-			return fmt.Errorf("failed to check if %q exists: %w", refString, err)
+			return fmt.Errorf("failed to check if %q exists: %w", spec, err)
 		}
 
-		activeVersion, err := pkg.GetActiveVersion(manifestRef.Name, mochaDir)
+		activeVersion, err := pkg.GetActiveVersion(info.Name, mochaDir)
 		if err != nil {
-			return fmt.Errorf("failed to get active version of %q: %w", manifestRef.Name, err)
+			return fmt.Errorf("failed to get active version of %q: %w", info.Name, err)
 		}
 
-		if activeVersion != "" && (activeVersion == manifestRef.Version || manifestRef.Version == "") {
-			output.LogOutput("removing shims/shortcuts for " + refString)
-			if err := pkg.Unlink(manifestRef.Name, mochaDir); err != nil {
-				return fmt.Errorf("failed to unlink app %q: %w", manifestRef.Name, err)
+		if activeVersion != "" && (activeVersion == info.Version || info.Version == "") {
+			output.LogOutput("removing shims/shortcuts for " + spec)
+			if err := pkg.Unlink(info.Name, mochaDir); err != nil {
+				return fmt.Errorf("failed to unlink app %q: %w", info.Name, err)
 			}
 		}
 
-		output.LogOutput("uninstalling " + refString)
+		output.LogOutput("uninstalling " + spec)
 		if err := os.RemoveAll(deletionDir); err != nil {
-			return fmt.Errorf("failed to uninstall %q: %w", refString, err)
+			return fmt.Errorf("failed to uninstall %q: %w", spec, err)
 		}
 
 		if deletionDir != appDir {
@@ -69,7 +69,7 @@ func (cmd *UninstallCommand) Run() error {
 			}
 		}
 
-		output.LogSuccess("successfully uninstalled %q", refString)
+		output.LogSuccess("successfully uninstalled %q", spec)
 	}
 
 	return nil

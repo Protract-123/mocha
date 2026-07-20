@@ -1,236 +1,105 @@
 package manifest
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
-type DownloadEntry struct {
-	URL    string
-	Hash   string
-	SubDir string
+type Info struct {
+	Name         string
+	Bucket       string
+	Version      string
+	ManifestPath string
 }
 
-func GetDownloadEntries(jsonData map[string]any, architecture string) ([]DownloadEntry, error) {
-	var urls []string
-	if val, err := getArchSpecificProperty("url", architecture, jsonData); err == nil {
-		urls = extractAsArray(val)
+func ParseSpec(spec string) (Info, error) {
+	malformedSpecError := fmt.Errorf("invalid manifest spec %q, expected format %q", spec, "[bucket/]manifest[@version]")
+
+	if spec == "" || strings.Count(spec, "@") > 1 || strings.Count(spec, "/") > 1 {
+		return Info{}, malformedSpecError
 	}
 
-	var hashes []string
-	if val, err := getArchSpecificProperty("hash", architecture, jsonData); err == nil {
-		hashes = extractAsArray(val)
+	info := Info{}
+	unparsedPortion := spec
+
+	if bucket, rest, found := strings.Cut(unparsedPortion, "/"); found {
+		info.Bucket = bucket
+		unparsedPortion = rest
 	}
 
-	var subDirs []string
-	if val, err := getArchSpecificProperty("extract_dir", architecture, jsonData); err == nil {
-		subDirs = extractAsArray(val)
+	if name, version, found := strings.Cut(unparsedPortion, "@"); found {
+		info.Name = name
+		info.Version = version
+	} else {
+		info.Name = unparsedPortion
 	}
 
-	if len(urls) == 0 {
-		return nil, fmt.Errorf("unable to find download URL (arch %q)", architecture)
-	}
-	if len(hashes) != 0 && len(hashes) != len(urls) {
-		return nil, fmt.Errorf("manifest has %d URLs but %d hashes", len(urls), len(hashes))
-	}
-	if len(subDirs) != 0 && len(subDirs) != len(urls) {
-		return nil, fmt.Errorf("manifest has %d URLs but %d extract_dirs", len(urls), len(subDirs))
+	if info.Name == "" {
+		return Info{}, malformedSpecError
+	} else if info.Bucket == "" && strings.Contains(spec, "/") {
+		return Info{}, malformedSpecError
+	} else if info.Version == "" && strings.Contains(spec, "@") {
+		return Info{}, malformedSpecError
 	}
 
-	entries := make([]DownloadEntry, len(urls))
-	for i, url := range urls {
-		entry := DownloadEntry{URL: url}
-		if len(hashes) != 0 {
-			entry.Hash = hashes[i]
-		}
-		if len(subDirs) != 0 {
-			entry.SubDir = subDirs[i]
-		}
-		entries[i] = entry
-	}
-
-	return entries, nil
+	return info, nil
 }
 
-type ExecutableEntry struct {
-	Exe   string
-	Alias string
-	Args  string
-}
-
-func GetExecutableEntries(jsonData map[string]any, architecture string) ([]ExecutableEntry, error) {
-	var rawEntries [][]string
-	if val, err := getArchSpecificProperty("bin", architecture, jsonData); err == nil {
-		rawEntries = extractAsArrayOfArray(val)
+func PopulateInfo(info Info, mochaDir string) (Info, error) {
+	if info.Name == "" {
+		return Info{}, fmt.Errorf("manifest name is empty")
 	}
 
-	entries := make([]ExecutableEntry, len(rawEntries))
-	for i, rawEntry := range rawEntries {
-		entry := ExecutableEntry{}
-
-		if len(rawEntry) > 0 {
-			entry.Exe = rawEntry[0]
-			entry.Alias = rawEntry[0]
-		}
-		if len(rawEntry) > 1 {
-			entry.Alias = rawEntry[1]
-		}
-		if len(rawEntry) > 2 {
-			entry.Args = rawEntry[2]
+	if info.Bucket == "" {
+		buckets, err := os.ReadDir(filepath.Join(mochaDir, "buckets"))
+		if err != nil {
+			return Info{}, fmt.Errorf("failed to get all buckets: %w", err)
 		}
 
-		entries[i] = entry
-	}
-
-	return entries, nil
-}
-
-type ShortcutEntry struct {
-	Exe  string
-	Name string
-	Args string
-	Icon string
-}
-
-func GetShortcutEntries(jsonData map[string]any, architecture string) []ShortcutEntry {
-	var rawEntries [][]string
-	if val, err := getArchSpecificProperty("shortcuts", architecture, jsonData); err == nil {
-		rawEntries = extractAsArrayOfArray(val)
-	}
-
-	entries := make([]ShortcutEntry, len(rawEntries))
-	for i, rawEntry := range rawEntries {
-		entry := ShortcutEntry{}
-
-		if len(rawEntry) < 2 {
-			continue
-		}
-
-		entry.Exe = rawEntry[0]
-		entry.Name = rawEntry[1]
-
-		if len(rawEntry) > 2 {
-			entry.Args = rawEntry[2]
-		}
-		if len(rawEntry) > 3 {
-			entry.Icon = rawEntry[3]
-		}
-		entries[i] = entry
-	}
-
-	return entries
-}
-
-type PersistEntry struct {
-	Target string
-	Source string
-}
-
-func GetPersistEntries(jsonData map[string]any) []PersistEntry {
-	var rawEntries [][]string
-	if val, ok := jsonData["persist"]; ok {
-		rawEntries = extractAsArrayOfArray(val)
-	}
-
-	entries := make([]PersistEntry, len(rawEntries))
-	for i, rawEntry := range rawEntries {
-		entry := PersistEntry{}
-
-		if len(rawEntry) > 0 {
-			entry.Target = rawEntry[0]
-			entry.Source = rawEntry[0]
-		}
-		if len(rawEntry) > 1 {
-			entry.Source = rawEntry[1]
-		}
-
-		entries[i] = entry
-	}
-
-	return entries
-}
-
-func GetInnoSetup(jsonData map[string]any) bool {
-	if val, ok := jsonData["innosetup"].(bool); ok {
-		return val
-	}
-	return false
-}
-
-func GetVersion(jsonData map[string]any) (string, error) {
-	if val, ok := jsonData["version"].(string); ok {
-		return val, nil
-	}
-	return "", fmt.Errorf("failed to get version from json")
-}
-
-func GetJson(manifestPath string) (map[string]any, error) {
-	rawData, err := os.ReadFile(manifestPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read manifest %q: %w", manifestPath, err)
-	}
-
-	var jsonData map[string]any
-	if err := json.Unmarshal(rawData, &jsonData); err != nil {
-		return nil, fmt.Errorf("failed to parse manifest %q: %w", manifestPath, err)
-	}
-
-	return jsonData, nil
-}
-
-func getArchSpecificProperty(property string, architecture string, jsonData map[string]any) (any, error) {
-	if archMap, ok := jsonData["architecture"].(map[string]any); ok {
-		if archBlock, ok := archMap[architecture].(map[string]any); ok {
-			if val, ok := archBlock[property]; ok {
-				return val, nil
+		for _, bucket := range buckets {
+			if !bucket.IsDir() {
+				continue
 			}
-		}
-	}
 
-	if val, ok := jsonData[property]; ok {
-		return val, nil
-	}
-
-	return nil, fmt.Errorf("failed to get %q from manifest json", property)
-}
-
-func extractAsArray(v any) []string {
-	switch val := v.(type) {
-	case string:
-		if val == "" {
-			return nil
-		}
-		return []string{val}
-	case []any:
-		out := make([]string, 0, len(val))
-		for _, item := range val {
-			if s, ok := item.(string); ok {
-				out = append(out, s)
+			manifestPath := filepath.Join(mochaDir, "buckets", bucket.Name(), "bucket", fmt.Sprintf("%s.json", info.Name))
+			if _, err := os.Stat(manifestPath); errors.Is(err, os.ErrNotExist) {
+				continue
+			} else if err != nil {
+				return Info{}, fmt.Errorf("failed to confirm if manifest exists at %q: %w", manifestPath, err)
 			}
-		}
-		return out
-	default:
-		return nil
-	}
-}
 
-func extractAsArrayOfArray(v any) [][]string {
-	switch val := v.(type) {
-	case string:
-		if val == "" {
-			return nil
+			info.Bucket = bucket.Name()
+			break
 		}
-		return [][]string{{val}}
-	case []any:
-		out := make([][]string, 0, len(val))
-		for _, item := range val {
-			if s := extractAsArray(item); len(s) > 0 {
-				out = append(out, s)
-			}
+
+		if info.Bucket == "" {
+			return Info{}, fmt.Errorf("failed to find manifest %q in buckets", info.Name)
 		}
-		return out
-	default:
-		return nil
 	}
+
+	manifestPath := filepath.Join(mochaDir, "buckets", info.Bucket, "bucket", fmt.Sprintf("%s.json", info.Name))
+	if _, err := os.Stat(manifestPath); err != nil {
+		return Info{}, fmt.Errorf("failed to find manifest %q in bucket %q: %w", info.Name, info.Bucket, err)
+	}
+
+	info.ManifestPath = manifestPath
+
+	if info.Version == "" {
+		manifestJson, err := GetJson(manifestPath)
+		if err != nil {
+			return Info{}, fmt.Errorf("failed to get manifest JSON: %w", err)
+		}
+
+		version, err := GetVersion(manifestJson)
+		if err != nil {
+			return Info{}, fmt.Errorf("failed to get manifest version for %q in bucket %q: %w", info.Name, info.Bucket, err)
+		}
+
+		info.Version = version
+	}
+
+	return info, nil
 }

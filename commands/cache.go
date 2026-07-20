@@ -137,18 +137,18 @@ func (cmd *clearCacheCommand) Run() error {
 		return nil
 	}
 
-	for _, refString := range cmd.Items {
-		cacheRef, err := manifest.ParseRefString(refString)
+	for _, spec := range cmd.Items {
+		cacheInfo, err := manifest.ParseSpec(spec)
 		if err != nil {
-			return fmt.Errorf("failed to parse cache item %q: %w", refString, err)
+			return fmt.Errorf("failed to parse cache item %q: %w", spec, err)
 		}
 
 		for _, cacheItem := range cacheItems {
-			if cacheRef.Name != cacheItem.Name && cacheRef.Name != "" {
+			if cacheInfo.Name != cacheItem.Name && cacheInfo.Name != "" {
 				continue
 			}
 
-			if cacheRef.Version != cacheItem.Version && cacheRef.Version != "" {
+			if cacheInfo.Version != cacheItem.Version && cacheInfo.Version != "" {
 				continue
 			}
 
@@ -157,7 +157,7 @@ func (cmd *clearCacheCommand) Run() error {
 			}
 		}
 
-		output.LogSuccess("successfully deleted cache for %q", refString)
+		output.LogSuccess("successfully deleted cache for %q", spec)
 	}
 
 	return nil

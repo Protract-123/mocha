@@ -12,22 +12,22 @@ import (
 	"github.com/Protract-123/mocha/shim"
 )
 
-func Link(ref manifest.Ref, mochaDir string) error {
-	if ref.Name == "" {
-		return fmt.Errorf("package reference doesn't have a name")
+func Link(info manifest.Info, mochaDir string) error {
+	if info.Name == "" {
+		return fmt.Errorf("package info doesn't have a name")
 	}
-	if ref.Version == "" {
-		return fmt.Errorf("package reference doesn't have a version")
+	if info.Version == "" {
+		return fmt.Errorf("package info doesn't have a version")
 	}
 
-	if currentVersion, err := GetActiveVersion(ref.Name, mochaDir); err != nil {
+	if currentVersion, err := GetActiveVersion(info.Name, mochaDir); err != nil {
 		return fmt.Errorf("failed to get current version: %w", err)
 	} else if currentVersion != "" {
-		return fmt.Errorf("package %s is already linked", ref.Name)
+		return fmt.Errorf("package %s is already linked", info.Name)
 	}
 
-	versionDir := filepath.Join(mochaDir, "apps", ref.Name, ref.Version)
-	currentDir := filepath.Join(mochaDir, "apps", ref.Name, "current")
+	versionDir := filepath.Join(mochaDir, "apps", info.Name, info.Version)
+	currentDir := filepath.Join(mochaDir, "apps", info.Name, "current")
 
 	installInfo, err := GetInstallInfo(versionDir)
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 )
 
 type Package struct {
-	manifest.Ref
+	manifest.Info
 	Json map[string]any
 	Arch string
 }

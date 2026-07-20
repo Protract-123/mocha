@@ -62,16 +62,16 @@ func (cmd *UpgradeCommand) Run() error {
 			return fmt.Errorf("cannot parse install info file for %s: %w", app, err)
 		}
 
-		manifestRef, err := manifest.PopulateRef(manifest.Ref{Name: app, Bucket: installInfo.Bucket}, mochaDir)
+		info, err := manifest.PopulateInfo(manifest.Info{Name: app, Bucket: installInfo.Bucket}, mochaDir)
 		if err != nil {
 			return fmt.Errorf("cannot fetch app info for %s: %w", app, err)
 		}
 
-		if manifest.CompareVersions(installInfo.Version, manifestRef.Version) != 1 {
+		if manifest.CompareVersions(installInfo.Version, info.Version) != 1 {
 			continue
 		}
 
-		manifestJson, err := manifest.GetJson(manifestRef.ManifestPath)
+		manifestJson, err := manifest.GetJson(info.ManifestPath)
 		if err != nil {
 			return fmt.Errorf("failed to get manifest JSON: %w", err)
 		}
@@ -79,7 +79,7 @@ func (cmd *UpgradeCommand) Run() error {
 		output.LogOutput("upgrading " + app)
 
 		target := pkg.Package{
-			Ref:  manifestRef,
+			Info: info,
 			Json: manifestJson,
 			Arch: downloadArch,
 		}
@@ -102,7 +102,7 @@ func (cmd *UpgradeCommand) Run() error {
 			return fmt.Errorf("failed to unlink old version of %s: %w", app, err)
 		}
 
-		if err := pkg.Link(target.Ref, mochaDir); err != nil {
+		if err := pkg.Link(target.Info, mochaDir); err != nil {
 			return fmt.Errorf("failed to link app: %w", err)
 		}
 

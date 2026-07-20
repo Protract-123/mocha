@@ -35,19 +35,19 @@ func (cmd *ListCommand) Run() error {
 				continue
 			}
 
-			ref := manifest.Ref{
+			info := manifest.Info{
 				Name:         app.Name(),
 				Bucket:       "",
 				Version:      version.Name(),
 				ManifestPath: "",
 			}
 
-			ref, err := manifest.PopulateRef(ref, mochaDir)
+			info, err := manifest.PopulateInfo(info, mochaDir)
 			if err != nil {
 				return fmt.Errorf("failed to fetch app details for %q: %w", app.Name(), err)
 			}
 
-			rows = append(rows, []string{ref.Name, ref.Version, ref.Bucket})
+			rows = append(rows, []string{info.Name, info.Version, info.Bucket})
 		}
 	}
 

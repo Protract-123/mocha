@@ -31,7 +31,7 @@ func Install(pkg Package, downloadResults []DownloadResult, mochaDir string) err
 		}
 	}
 
-	if err := createPersistLinks(pkg.Ref, pkg.Json, mochaDir); err != nil {
+	if err := createPersistLinks(pkg.Info, pkg.Json, mochaDir); err != nil {
 		return fmt.Errorf("failed to create persist links: %w", err)
 	}
 
@@ -114,12 +114,12 @@ func installFile(filePath string, installDir string, mochaDir string, options in
 	return nil
 }
 
-func createPersistLinks(ref manifest.Ref, manifestJson map[string]any, mochaDir string) error {
-	versionDir := filepath.Join(mochaDir, "apps", ref.Name, ref.Version)
+func createPersistLinks(info manifest.Info, manifestJson map[string]any, mochaDir string) error {
+	versionDir := filepath.Join(mochaDir, "apps", info.Name, info.Version)
 	persistEntries := manifest.GetPersistEntries(manifestJson)
 
 	for _, persistEntry := range persistEntries {
-		source := filepath.Join(mochaDir, "persist", ref.Name, persistEntry.Source)
+		source := filepath.Join(mochaDir, "persist", info.Name, persistEntry.Source)
 		target := filepath.Join(versionDir, persistEntry.Target)
 
 		var sourceExists bool
@@ -157,12 +157,12 @@ func createPersistLinks(ref manifest.Ref, manifestJson map[string]any, mochaDir 
 			break
 		}
 
-		info, err := os.Stat(source)
+		sourceInfo, err := os.Stat(source)
 		if err != nil {
 			return fmt.Errorf("failed to get persist source info: %w", err)
 		}
 
-		if info.IsDir() {
+		if sourceInfo.IsDir() {
 			if err := fileops.CreateJunction(source, target); err != nil {
 				return fmt.Errorf("failed to symlink (junction) target to source: %w", err)
 			}

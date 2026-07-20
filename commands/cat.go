@@ -17,25 +17,25 @@ type CatCommand struct {
 func (cmd *CatCommand) Run() error {
 	catConfig := config.Current().Cat
 
-	for _, refString := range cmd.Manifests {
-		manifestRef, err := manifest.ParseRefString(refString)
+	for _, spec := range cmd.Manifests {
+		info, err := manifest.ParseSpec(spec)
 		if err != nil {
-			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
+			return fmt.Errorf("failed to parse manifest spec %q: %w", spec, err)
 		}
 
-		manifestRef, err = manifest.PopulateRef(manifestRef, config.Current().MochaDirectory)
+		info, err = manifest.PopulateInfo(info, config.Current().MochaDirectory)
 		if err != nil {
-			return fmt.Errorf("failed to get manifest details for %q: %w", refString, err)
+			return fmt.Errorf("failed to get manifest details for %q: %w", spec, err)
 		}
 
 		if catConfig.Command == "" {
-			data, err := os.ReadFile(manifestRef.ManifestPath)
+			data, err := os.ReadFile(info.ManifestPath)
 			if err != nil {
-				return fmt.Errorf("failed to read manifest %q: %w", manifestRef.ManifestPath, err)
+				return fmt.Errorf("failed to read manifest %q: %w", info.ManifestPath, err)
 			}
 
 			if _, err := os.Stdout.Write(data); err != nil {
-				return fmt.Errorf("failed to display manifest %q: %w", manifestRef.ManifestPath, err)
+				return fmt.Errorf("failed to display manifest %q: %w", info.ManifestPath, err)
 			}
 
 			continue
@@ -45,7 +45,7 @@ func (cmd *CatCommand) Run() error {
 			return fmt.Errorf("command %q must contain [path] to replace", catConfig.Command)
 		}
 
-		commandStr := strings.Replace(catConfig.Command, "[path]", manifestRef.ManifestPath, 1)
+		commandStr := strings.Replace(catConfig.Command, "[path]", info.ManifestPath, 1)
 
 		command := exec.Command("cmd.exe", "/C", commandStr)
 		command.Stdin = os.Stdin
@@ -53,7 +53,7 @@ func (cmd *CatCommand) Run() error {
 		command.Stderr = os.Stderr
 
 		if err := command.Run(); err != nil {
-			return fmt.Errorf("failed to display manifest %q: %w", manifestRef.ManifestPath, err)
+			return fmt.Errorf("failed to display manifest %q: %w", info.ManifestPath, err)
 		}
 	}
 

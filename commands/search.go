@@ -89,17 +89,17 @@ func outputResults(matches []string, mochaDir string) error {
 	rows := make([][]string, len(matches))
 
 	for index, result := range matches {
-		manifestRef, err := manifest.ParseRefString(result)
+		info, err := manifest.ParseSpec(result)
 		if err != nil {
 			return fmt.Errorf("failed to parse result %q: %w", result, err)
 		}
 
-		manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
+		info, err = manifest.PopulateInfo(info, mochaDir)
 		if err != nil {
 			return fmt.Errorf("failed to get manifest details for %q: %w", result, err)
 		}
 
-		rows[index] = []string{manifestRef.Name, manifestRef.Bucket, manifestRef.Version}
+		rows[index] = []string{info.Name, info.Bucket, info.Version}
 	}
 
 	tableConfig := output.TableConfig{

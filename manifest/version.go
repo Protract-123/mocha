@@ -32,7 +32,7 @@ func CompareVersions(reference string, difference string) int {
 
 	maxLen := max(len(referenceParts), len(differenceParts))
 
-	for i := 0; i < maxLen; i++ {
+	for i := range maxLen {
 		if i >= len(referenceParts) {
 			if prereleaseTokenPattern.MatchString(differenceParts[i]) {
 				return -1

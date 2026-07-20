@@ -25,24 +25,24 @@ func (cmd *DownloadCommand) Run() error {
 
 	mochaDir := config.Current().MochaDirectory
 
-	for _, refString := range cmd.Apps {
-		manifestRef, err := manifest.ParseRefString(refString)
+	for _, spec := range cmd.Apps {
+		info, err := manifest.ParseSpec(spec)
 		if err != nil {
-			return fmt.Errorf("failed to parse manifest ref %q: %w", refString, err)
+			return fmt.Errorf("failed to parse manifest spec %q: %w", spec, err)
 		}
 
-		manifestRef, err = manifest.PopulateRef(manifestRef, mochaDir)
+		info, err = manifest.PopulateInfo(info, mochaDir)
 		if err != nil {
-			return fmt.Errorf("failed to get %q manifest details: %w", refString, err)
+			return fmt.Errorf("failed to get %q manifest details: %w", spec, err)
 		}
 
-		manifestJson, err := manifest.GetJson(manifestRef.ManifestPath)
+		manifestJson, err := manifest.GetJson(info.ManifestPath)
 		if err != nil {
 			return fmt.Errorf("failed to get manifest JSON: %w", err)
 		}
 
 		target := pkg.Package{
-			Ref:  manifestRef,
+			Info: info,
 			Json: manifestJson,
 			Arch: downloadArch,
 		}
@@ -56,7 +56,7 @@ func (cmd *DownloadCommand) Run() error {
 			return fmt.Errorf("failed to download manifest files: %w", err)
 		}
 
-		output.LogSuccess("successfully downloaded %q", refString)
+		output.LogSuccess("successfully downloaded %q", spec)
 	}
 	return nil
 }
