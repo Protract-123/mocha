@@ -47,13 +47,13 @@ func Download(pkg Package, mochaDir string, options DownloadOptions) ([]Download
 		}
 
 		if !cached || options.Force {
-			output.LogOutput("Downloading %s to %s", entry.URL, downloadPath)
+			output.LogInfo("downloading %s to %s", entry.URL, downloadPath)
 			if err := fileops.DownloadFile(entry.URL, downloadPath); err != nil {
 				return nil, fmt.Errorf("failed to download %s: %w", filename, err)
 			}
-			output.LogOutput("Downloaded %s", filename)
+			output.LogInfo("downloaded %s", filename)
 		} else {
-			output.LogOutput("Cache hit, skipping %s", filename)
+			output.LogInfo("cache hit, skipping %s", filename)
 		}
 
 		if !options.SkipVerify {
@@ -61,7 +61,7 @@ func Download(pkg Package, mochaDir string, options DownloadOptions) ([]Download
 				_ = os.Remove(downloadPath)
 				return nil, fmt.Errorf("failed to verify %s: %w", filename, err)
 			}
-			output.LogOutput("Verified %s\n", filename)
+			output.LogInfo("verified %s", filename)
 		}
 
 		downloadResults = append(downloadResults, DownloadResult{

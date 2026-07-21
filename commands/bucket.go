@@ -96,8 +96,7 @@ func (cmd *listBucketsCommand) Run() error {
 	}
 
 	if len(bucketMetadata) == 0 {
-		output.LogOutput("no buckets to show")
-		return nil
+		return fmt.Errorf("no buckets to show")
 	}
 
 	headers := []string{"Name", "Source", "Updated", "Manifests"}

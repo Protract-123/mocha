@@ -41,8 +41,7 @@ func (cmd *showCacheCommand) Run() error {
 	}
 
 	if len(cacheItems) == 0 {
-		output.LogOutput("no cache items to show")
-		return nil
+		return fmt.Errorf("no cache items to show")
 	}
 
 	type cacheItemKey struct {

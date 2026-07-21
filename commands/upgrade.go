@@ -76,7 +76,7 @@ func (cmd *UpgradeCommand) Run() error {
 			return fmt.Errorf("failed to get manifest JSON: %w", err)
 		}
 
-		output.LogOutput("upgrading " + app)
+		output.LogInfo("upgrading " + app)
 
 		target := pkg.Package{
 			Info: info,
