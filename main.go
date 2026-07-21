@@ -22,6 +22,7 @@ type arguments struct {
 	DownloadCommand  *commands.DownloadCommand  `arg:"subcommand:download" help:"download and verify an app's files"`
 	InstallCommand   *commands.InstallCommand   `arg:"subcommand:install" help:"install apps"`
 	ListCommand      *commands.ListCommand      `arg:"subcommand:list" help:"list installed apps"`
+	OutdatedCommand  *commands.OutdatedCommand  `arg:"subcommand:outdated" help:"list outdated apps"`
 	SearchCommand    *commands.SearchCommand    `arg:"subcommand:search" help:"search for an app in buckets"`
 	ShimCommand      *commands.ShimCommand      `arg:"subcommand:shim" help:"manage mocha shims"`
 	UninstallCommand *commands.UninstallCommand `arg:"subcommand:uninstall" help:"uninstall apps"`
@@ -83,6 +84,8 @@ func run() error {
 		executionError = args.InstallCommand.Run()
 	case args.ListCommand != nil:
 		executionError = args.ListCommand.Run()
+	case args.OutdatedCommand != nil:
+		executionError = args.OutdatedCommand.Run()
 	case args.SearchCommand != nil:
 		executionError = args.SearchCommand.Run()
 	case args.ShimCommand != nil:
