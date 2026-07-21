@@ -45,13 +45,13 @@ func (cmd *UninstallCommand) Run() error {
 		}
 
 		if activeVersion != "" && (activeVersion == info.Version || info.Version == "") {
-			output.LogInfo("removing shims/shortcuts for " + spec)
+			output.LogInfo("removing shims/shortcuts for %q", spec)
 			if err := pkg.Unlink(info.Name, mochaDir); err != nil {
 				return fmt.Errorf("failed to unlink app %q: %w", info.Name, err)
 			}
 		}
 
-		output.LogInfo("uninstalling " + spec)
+		output.LogInfo("uninstalling %q", spec)
 		if err := os.RemoveAll(deletionDir); err != nil {
 			return fmt.Errorf("failed to uninstall %q: %w", spec, err)
 		}
