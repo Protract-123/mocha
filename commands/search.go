@@ -59,26 +59,23 @@ func (cmd *SearchCommand) Run() error {
 		return fmt.Errorf("no results found in buckets")
 	}
 
-	if len(exactMatches) != 0 {
-		if err := outputResults(exactMatches, mochaDir); err != nil {
-			return fmt.Errorf("failed to print exact matches: %w", err)
-		}
+	limit := len(fuzzyMatches) + len(exactMatches)
+	if cmd.Count > 0 && cmd.Count < limit {
+		limit = cmd.Count
 	}
 
-	if len(fuzzyMatches) != 0 {
-		limit := len(fuzzyMatches)
-		if cmd.Count > 0 && cmd.Count < limit {
-			limit = cmd.Count
-		}
+	allMatches := make([]string, limit)
 
-		fuzzyResults := make([]string, limit)
-		for index, result := range fuzzyMatches[:limit] {
-			fuzzyResults[index] = result.Str
-		}
+	for i := 0; i < limit && i < len(exactMatches); i++ {
+		allMatches[i] = exactMatches[i]
+	}
 
-		if err := outputResults(fuzzyResults, mochaDir); err != nil {
-			return fmt.Errorf("failed to print fuzzy matches: %w", err)
-		}
+	for i := len(exactMatches); i < limit; i++ {
+		allMatches[i] = fuzzyMatches[i-len(exactMatches)].Str
+	}
+
+	if err := outputResults(allMatches, mochaDir); err != nil {
+		return fmt.Errorf("failed to print search results: %w", err)
 	}
 
 	return nil
