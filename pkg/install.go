@@ -41,9 +41,8 @@ func Install(pkg Package, downloadResults []DownloadResult, mochaDir string) err
 	}
 
 	installInfo := InstallInfo{
-		Bucket:  pkg.Bucket,
-		Version: pkg.Version,
-		Arch:    pkg.Arch,
+		Bucket: pkg.Bucket,
+		Arch:   pkg.Arch,
 	}
 
 	jsonEncoder := json.NewEncoder(installJsonFile)

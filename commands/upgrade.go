@@ -62,12 +62,14 @@ func (cmd *UpgradeCommand) Run() error {
 			return fmt.Errorf("cannot parse install info file for %s: %w", app, err)
 		}
 
+		activeVersion, err := pkg.GetActiveVersion(app, mochaDir)
+
 		info, err := manifest.PopulateInfo(manifest.Info{Name: app, Bucket: installInfo.Bucket}, mochaDir)
 		if err != nil {
 			return fmt.Errorf("cannot fetch app info for %s: %w", app, err)
 		}
 
-		if manifest.CompareVersions(installInfo.Version, info.Version) != 1 {
+		if manifest.CompareVersions(activeVersion, info.Version) != 1 {
 			continue
 		}
 

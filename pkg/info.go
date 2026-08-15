@@ -17,9 +17,8 @@ type Package struct {
 }
 
 type InstallInfo struct {
-	Bucket  string `json:"bucket"`
-	Version string `json:"version"`
-	Arch    string `json:"architecture"`
+	Bucket string `json:"bucket"`
+	Arch   string `json:"architecture"`
 
 	ManifestJson map[string]any `json:"-"`
 }
