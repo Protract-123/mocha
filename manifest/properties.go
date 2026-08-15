@@ -151,6 +151,36 @@ func GetPersistEntries(jsonData map[string]any) []PersistEntry {
 	return entries
 }
 
+func GetEnvEntries(jsonData map[string]any, architecture string) map[string]string {
+	val, err := getArchSpecificProperty("env_set", architecture, jsonData)
+	if err != nil {
+		return nil
+	}
+
+	rawEntries, ok := val.(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	entries := make(map[string]string, len(rawEntries))
+	for k, v := range rawEntries {
+		if s, ok := v.(string); ok {
+			entries[k] = s
+		}
+	}
+
+	return entries
+}
+
+func GetPathEntries(jsonData map[string]any, architecture string) []string {
+	var entries []string
+	if val, err := getArchSpecificProperty("env_add_path", architecture, jsonData); err == nil {
+		entries = extractAsArray(val)
+	}
+
+	return entries
+}
+
 func GetInnoSetup(jsonData map[string]any) bool {
 	if val, ok := jsonData["innosetup"].(bool); ok {
 		return val
