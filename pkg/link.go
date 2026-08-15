@@ -12,6 +12,8 @@ import (
 	"github.com/Protract-123/mocha/shim"
 )
 
+// TODO: add env_set and env_add_path support
+
 func Link(info manifest.Info, mochaDir string) error {
 	if info.Name == "" {
 		return fmt.Errorf("package info doesn't have a name")
