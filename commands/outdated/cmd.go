@@ -1,4 +1,4 @@
-package commands
+package outdated
 
 import (
 	"encoding/json"
@@ -12,9 +12,9 @@ import (
 	"github.com/Protract-123/mocha/pkg"
 )
 
-type OutdatedCommand struct{}
+type Command struct{}
 
-func (cmd *OutdatedCommand) Run() error {
+func (cmd *Command) Run() error {
 	mochaDir := config.Current().MochaDirectory
 	appDir := filepath.Join(mochaDir, "apps")
 

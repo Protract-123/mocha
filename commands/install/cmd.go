@@ -1,4 +1,4 @@
-package commands
+package install
 
 import (
 	"fmt"
@@ -9,13 +9,15 @@ import (
 	"github.com/Protract-123/mocha/pkg"
 )
 
-type InstallCommand struct {
+type Command struct {
 	Apps       []string `arg:"positional,required" help:"apps to install (e.g. git, bat@0.26.1)"`
 	Force      bool     `arg:"-f,--force" help:"ignore cache hits"`
 	SkipVerify bool     `arg:"-s,--skip-verify" help:"skip hash check"`
 }
 
-func (cmd *InstallCommand) Run() error {
+// TODO: error if package already installed
+
+func (cmd *Command) Run() error {
 	downloadArch, err := pkg.DownloadArch()
 	if err != nil {
 		return fmt.Errorf("failed to get system architecture: %w", err)

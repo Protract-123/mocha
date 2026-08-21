@@ -1,4 +1,4 @@
-package commands
+package update
 
 import (
 	"fmt"
@@ -8,11 +8,11 @@ import (
 	"github.com/Protract-123/mocha/output"
 )
 
-type UpdateCommand struct {
+type Command struct {
 	Buckets []string `arg:"positional" help:"buckets to update; updates all buckets if omitted (e.g. main)"`
 }
 
-func (cmd *UpdateCommand) Run() error {
+func (cmd *Command) Run() error {
 	mochaDir := config.Current().MochaDirectory
 
 	if err := bucket.UpdateKnownBuckets(mochaDir); err != nil {

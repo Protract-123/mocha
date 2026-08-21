@@ -1,4 +1,4 @@
-package commands
+package cat
 
 import (
 	"fmt"
@@ -10,11 +10,11 @@ import (
 	"github.com/Protract-123/mocha/manifest"
 )
 
-type CatCommand struct {
+type Command struct {
 	Manifests []string `arg:"positional,required" help:"manifests to show (e.g. git, zed)"`
 }
 
-func (cmd *CatCommand) Run() error {
+func (cmd *Command) Run() error {
 	catConfig := config.Current().Cat
 
 	for _, spec := range cmd.Manifests {

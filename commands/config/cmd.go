@@ -1,4 +1,4 @@
-package commands
+package config
 
 import (
 	"errors"
@@ -9,9 +9,9 @@ import (
 	"github.com/Protract-123/mocha/config"
 )
 
-type ConfigCommand struct{}
+type Command struct{}
 
-func (cmd *ConfigCommand) Run() error {
+func (cmd *Command) Run() error {
 	configPath, err := config.Location(config.Current().MochaDirectory)
 	if errors.Is(err, config.ErrNotFound) {
 		if err := config.WriteDefault(configPath); err != nil {

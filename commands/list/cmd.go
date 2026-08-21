@@ -1,4 +1,4 @@
-package commands
+package list
 
 import (
 	"fmt"
@@ -10,9 +10,9 @@ import (
 	"github.com/Protract-123/mocha/output"
 )
 
-type ListCommand struct{}
+type Command struct{}
 
-func (cmd *ListCommand) Run() error {
+func (cmd *Command) Run() error {
 	mochaDir := config.Current().MochaDirectory
 	appDir := filepath.Join(mochaDir, "apps")
 

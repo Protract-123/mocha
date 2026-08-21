@@ -1,4 +1,4 @@
-package commands
+package upgrade
 
 import (
 	"encoding/json"
@@ -13,14 +13,14 @@ import (
 	"github.com/alexflint/go-arg"
 )
 
-type UpgradeCommand struct {
+type Command struct {
 	Apps       []string `arg:"positional" help:"apps to upgrade (e.g. git, 7zip)"`
 	All        bool     `arg:"-a,--all" help:"upgrade all apps"`
 	Force      bool     `arg:"-f,--force" help:"ignore cache hits"`
 	SkipVerify bool     `arg:"-s,--skip-verify" help:"skip hash check"`
 }
 
-func (cmd *UpgradeCommand) Run() error {
+func (cmd *Command) Run() error {
 	if len(cmd.Apps) == 0 && !cmd.All {
 		return arg.ErrHelp
 	}
@@ -63,6 +63,9 @@ func (cmd *UpgradeCommand) Run() error {
 		}
 
 		activeVersion, err := pkg.GetActiveVersion(app, mochaDir)
+		if err != nil {
+			return fmt.Errorf("cannot get active version for %s: %w", app, err)
+		}
 
 		info, err := manifest.PopulateInfo(manifest.Info{Name: app, Bucket: installInfo.Bucket}, mochaDir)
 		if err != nil {

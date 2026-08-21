@@ -1,4 +1,4 @@
-package commands
+package search
 
 import (
 	"fmt"
@@ -12,12 +12,12 @@ import (
 	"github.com/sahilm/fuzzy"
 )
 
-type SearchCommand struct {
+type Command struct {
 	Query string `arg:"positional,required" help:"app name to search for"`
 	Count int    `default:"20" arg:"-c, --count" help:"max number of fuzzy results to show"`
 }
 
-func (cmd *SearchCommand) Run() error {
+func (cmd *Command) Run() error {
 	query := strings.ToLower(cmd.Query)
 
 	mochaDir := config.Current().MochaDirectory
