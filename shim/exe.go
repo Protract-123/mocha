@@ -15,10 +15,6 @@ const (
 )
 
 func CreateExeShim(name string, execPath string, mochaDir string) error {
-	if err := InitShimBinary(mochaDir); err != nil {
-		return fmt.Errorf("failed to init shim.exe: %w", err)
-	}
-
 	if !filepath.IsAbs(execPath) {
 		return fmt.Errorf("%s is not an absolute path", execPath)
 	}
