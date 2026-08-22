@@ -2,6 +2,7 @@ package upgrade
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,12 +26,18 @@ func (cmd *Command) Run() error {
 		return arg.ErrHelp
 	}
 
+	mochaDir := config.Current().MochaDirectory
+
+	if _, err := os.Stat(filepath.Join(mochaDir, "shim.exe")); errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("shim.exe does not exist, setup shim binary with shim binary setup")
+	} else if err != nil {
+		return fmt.Errorf("failed to confirm target's existence: %w", err)
+	}
+
 	downloadArch, err := pkg.DownloadArch()
 	if err != nil {
 		return fmt.Errorf("failed to get system architecture: %w", err)
 	}
-
-	mochaDir := config.Current().MochaDirectory
 
 	var appList []string
 	if cmd.All {

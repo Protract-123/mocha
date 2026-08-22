@@ -9,8 +9,8 @@ import (
 )
 
 type Command struct {
-	Language string `arg:"positional,required" help:"language of the shim binary"`
-	Version  string `arg:"positional,required" help:"version of the shim binary"`
+	Language string `arg:"positional" help:"language of the shim binary"`
+	Version  string `arg:"positional" help:"version of the shim binary"`
 }
 
 func (cmd *Command) Run() error {
@@ -23,7 +23,7 @@ func (cmd *Command) Run() error {
 
 	switch {
 	case cmd.Language == "" && cmd.Version == "":
-	// prompt user for release to download
+		return fmt.Errorf("no language specified, run shim binary releases to see available options")
 	case cmd.Language != "" && cmd.Version == "":
 		for _, entry := range releases {
 			if entry.Language == cmd.Language {
@@ -37,7 +37,7 @@ func (cmd *Command) Run() error {
 			}
 		}
 	case cmd.Language == "" && cmd.Version != "":
-		return fmt.Errorf("version provided without a language specified")
+		return fmt.Errorf("no language specified for the given version")
 	}
 
 	if selectedRelease.Version == "" || selectedRelease.Language == "" {

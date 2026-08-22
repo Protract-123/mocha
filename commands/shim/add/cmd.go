@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/output"
@@ -19,6 +20,14 @@ type Command struct {
 func (cmd *Command) Run() error {
 	shimPath := cmd.Path
 
+	mochaDir := config.Current().MochaDirectory
+
+	if _, err := os.Stat(filepath.Join(mochaDir, "shim.exe")); errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("shim.exe does not exist, setup shim binary with shim binary setup")
+	} else if err != nil {
+		return fmt.Errorf("failed to confirm target's existence: %w", err)
+	}
+
 	if _, err := os.Stat(cmd.Path); errors.Is(err, os.ErrNotExist) {
 		resolved, err := exec.LookPath(cmd.Path)
 		if err != nil {
@@ -29,7 +38,7 @@ func (cmd *Command) Run() error {
 		return fmt.Errorf("failed to confirm target's existence: %w", err)
 	}
 
-	if err := shim.CreateShim(cmd.Name, shimPath, config.Current().MochaDirectory); err != nil {
+	if err := shim.CreateShim(cmd.Name, shimPath, mochaDir); err != nil {
 		return fmt.Errorf("failed to create shim: %w", err)
 	}
 

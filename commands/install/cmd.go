@@ -1,7 +1,10 @@
 package install
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/manifest"
@@ -24,6 +27,12 @@ func (cmd *Command) Run() error {
 	}
 
 	mochaDir := config.Current().MochaDirectory
+
+	if _, err := os.Stat(filepath.Join(mochaDir, "shim.exe")); errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("shim.exe does not exist, setup shim binary with shim binary setup")
+	} else if err != nil {
+		return fmt.Errorf("failed to confirm target's existence: %w", err)
+	}
 
 	for _, spec := range cmd.Apps {
 		info, err := manifest.ParseSpec(spec)
