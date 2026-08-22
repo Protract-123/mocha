@@ -48,9 +48,6 @@ func GetShimReleases() ([]Release, error) {
 	}
 
 	slices.SortFunc(releases, func(a, b Release) int {
-		if dateCmp := b.PublishedAt.Compare(a.PublishedAt); dateCmp != 0 {
-			return dateCmp
-		}
 		if langCmp := strings.Compare(a.Language, b.Language); langCmp != 0 {
 			return langCmp
 		}
