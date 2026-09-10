@@ -99,8 +99,8 @@ func GetShortcutEntries(jsonData map[string]any, architecture string) []Shortcut
 		rawEntries = extractAsArrayOfArray(val)
 	}
 
-	entries := make([]ShortcutEntry, len(rawEntries))
-	for i, rawEntry := range rawEntries {
+	entries := make([]ShortcutEntry, 0, len(rawEntries))
+	for _, rawEntry := range rawEntries {
 		entry := ShortcutEntry{}
 
 		if len(rawEntry) < 2 {
@@ -116,7 +116,7 @@ func GetShortcutEntries(jsonData map[string]any, architecture string) []Shortcut
 		if len(rawEntry) > 3 {
 			entry.Icon = rawEntry[3]
 		}
-		entries[i] = entry
+		entries = append(entries, entry)
 	}
 
 	return entries
