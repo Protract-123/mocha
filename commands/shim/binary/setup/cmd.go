@@ -16,21 +16,26 @@ type Command struct {
 func (cmd *Command) Run() error {
 	var selectedRelease shim.Release
 
-	releases, err := shim.GetLatestShimReleases()
-	if err != nil {
-		return fmt.Errorf("failed to get latest shim releases: %w", err)
-	}
-
 	switch {
 	case cmd.Language == "" && cmd.Version == "":
 		return fmt.Errorf("no language specified, run shim binary releases to see available options")
 	case cmd.Language != "" && cmd.Version == "":
+		releases, err := shim.GetLatestShimReleases()
+		if err != nil {
+			return fmt.Errorf("failed to get latest shim releases: %w", err)
+		}
+
 		for _, entry := range releases {
 			if entry.Language == cmd.Language {
 				selectedRelease = entry
 			}
 		}
 	case cmd.Language != "" && cmd.Version != "":
+		releases, err := shim.GetShimReleases()
+		if err != nil {
+			return fmt.Errorf("failed to get latest shim releases: %w", err)
+		}
+
 		for _, entry := range releases {
 			if entry.Language == cmd.Language && entry.Version == cmd.Version {
 				selectedRelease = entry
