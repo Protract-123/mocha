@@ -9,14 +9,16 @@ import (
 )
 
 type Command struct {
-	Name string `arg:"positional,required" help:"name of the shim to remove"`
+	Name []string `arg:"positional,required" help:"name of the shim to remove"`
 }
 
 func (cmd *Command) Run() error {
-	if err := shim.DeleteShim(cmd.Name, config.Current().MochaDirectory); err != nil {
-		return fmt.Errorf("failed to delete shim: %w", err)
+	for _, name := range cmd.Name {
+		if err := shim.DeleteShim(name, config.Current().MochaDirectory); err != nil {
+			return fmt.Errorf("failed to delete shim: %w", err)
+		}
+		output.LogSuccess("successfully deleted shim %q", name)
 	}
 
-	output.LogSuccess("successfully deleted shim %q", cmd.Name)
 	return nil
 }
