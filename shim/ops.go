@@ -3,27 +3,65 @@ package shim
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/Protract-123/mocha/output"
 )
 
 type Info struct {
-	Name   string
-	Target string
+	Name             string
+	Target           string
+	Args             string
+	WorkingDirectory string
+	Elevate          bool
+	EnvVars          map[string]string
 }
 
-func CreateShim(name string, path string, mochaDir string) error {
-	shimDirectory := filepath.Join(mochaDir, "shims")
-	if err := os.MkdirAll(shimDirectory, os.ModePerm); err != nil {
+func CreateShim(info Info, mochaDir string) error {
+	if info.Name == "" {
+		return fmt.Errorf("missing shim name")
+	} else if info.Target == "" || !filepath.IsAbs(info.Target) {
+		return fmt.Errorf("missing shim target")
+	}
+
+	shimDir := filepath.Join(mochaDir, "shims")
+	if err := os.MkdirAll(shimDir, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create shim directory: %w", err)
 	}
 
-	fileExtension := filepath.Ext(path)
+	overrideSubsystem := true
 
-	if fileExtension == ".exe" || fileExtension == ".com" {
-		if err := CreateExeShim(name, path, mochaDir); err != nil {
-			return fmt.Errorf("failed to create exe shim: %w", err)
+	fileExtension := strings.ToLower(filepath.Ext(info.Target))
+	switch {
+	case fileExtension == ".exe" || fileExtension == ".com":
+		break
+	case fileExtension == ".bat" || fileExtension == ".cmd":
+		cmdPath, err := exec.LookPath("cmd.exe")
+		if err != nil {
+			return fmt.Errorf("failed to find cmd executable: %w", err)
 		}
+		info.Args = "/C " + `"` + info.Target + `"` + " " + info.Args
+		info.Target = cmdPath
+	case fileExtension == ".py":
+		// TODO: make python interpreter name/path customizable
+		pythonPath, err := exec.LookPath("python3.14.exe")
+		if err != nil {
+			return fmt.Errorf("failed to find python executable: %w", err)
+		}
+		info.Args = `"` + info.Target + `"` + " " + info.Args
+		info.Target = pythonPath
+	default:
+		return nil
+	}
+
+	if err := copyShimBinary(info, overrideSubsystem, mochaDir); err != nil {
+		return fmt.Errorf("failed to create exe shim: %w", err)
+	}
+
+	if err := createShimSidecar(info, shimDir); err != nil {
+		return fmt.Errorf("failed to create .shim sidecar file: %w", err)
 	}
 
 	return nil
@@ -55,7 +93,7 @@ func DeleteShim(name string, mochaDir string) error {
 	}
 
 	if !deletion {
-		return fmt.Errorf("no shim found for %q", name)
+		output.LogWarning("no shim found for %q", name)
 	}
 
 	return nil
@@ -77,17 +115,12 @@ func GetAllShims(mochaDir string) ([]Info, error) {
 		}
 
 		if filepath.Ext(shim.Name()) == ".shim" {
-			path := filepath.Join(shimsDir, shim.Name())
-
-			shimBytes, err := os.ReadFile(path)
+			info, err := parseShimSidecar(filepath.Join(shimsDir, shim.Name()))
 			if err != nil {
-				return nil, fmt.Errorf("failed to read shim file %s: %w", shim.Name(), err)
+				return nil, fmt.Errorf("failed to parse %s: %w", shim.Name(), err)
 			}
 
-			name := strings.TrimSuffix(shim.Name(), ".shim")
-			target := strings.TrimSpace(strings.Split(string(shimBytes), "=")[1])
-
-			shimInfo = append(shimInfo, Info{name, target})
+			shimInfo = append(shimInfo, info)
 		}
 	}
 

@@ -48,7 +48,13 @@ func Link(info manifest.Info, mochaDir string) error {
 	for _, binary := range binaries {
 		shimName := strings.TrimSuffix(filepath.Base(binary.Alias), filepath.Ext(binary.Alias))
 		shimPath := filepath.Join(currentDir, binary.Exe)
-		if err := shim.CreateShim(shimName, shimPath, mochaDir); err != nil {
+
+		shimInfo := shim.Info{
+			Name:   shimName,
+			Target: shimPath,
+		}
+
+		if err := shim.CreateShim(shimInfo, mochaDir); err != nil {
 			return fmt.Errorf("failed to create shim %s: %w", shimName, err)
 		}
 	}

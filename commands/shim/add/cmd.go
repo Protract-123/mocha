@@ -38,7 +38,12 @@ func (cmd *Command) Run() error {
 		return fmt.Errorf("failed to confirm target's existence: %w", err)
 	}
 
-	if err := shim.CreateShim(cmd.Name, shimPath, mochaDir); err != nil {
+	info := shim.Info{
+		Name:   cmd.Name,
+		Target: shimPath,
+	}
+
+	if err := shim.CreateShim(info, mochaDir); err != nil {
 		return fmt.Errorf("failed to create shim: %w", err)
 	}
 
