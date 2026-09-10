@@ -44,6 +44,23 @@ func CreateShim(info Info, mochaDir string) error {
 		}
 		info.Args = "/C " + `"` + info.Target + `"` + " " + info.Args
 		info.Target = cmdPath
+	case fileExtension == ".ps1":
+		// TODO: make powershell interpreter name/path customizable
+		powershellPath, err := exec.LookPath("powershell.exe")
+		if err != nil {
+			return fmt.Errorf("failed to find cmd executable: %w", err)
+		}
+		info.Args = "-File " + `"` + info.Target + `"` + " " + info.Args
+		info.Target = powershellPath
+	case fileExtension == ".jar":
+		// TODO: make java runtime name/path customizable
+		powershellPath, err := exec.LookPath("java.exe")
+		if err != nil {
+			return fmt.Errorf("failed to find cmd executable: %w", err)
+		}
+		info.Args = "-jar " + `"` + info.Target + `"` + " " + info.Args
+		info.Target = powershellPath
+
 	case fileExtension == ".py":
 		// TODO: make python interpreter name/path customizable
 		pythonPath, err := exec.LookPath("python3.14.exe")
