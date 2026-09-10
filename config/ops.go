@@ -28,7 +28,7 @@ func Current() MochaConfiguration {
 }
 
 func Load(mochaDir string) (MochaConfiguration, error) {
-	config := MochaConfiguration{}
+	config := Default()
 	configPath, err := Location(mochaDir)
 
 	if errors.Is(err, ErrNotFound) {
