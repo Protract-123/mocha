@@ -16,7 +16,7 @@ func SetEnvironmentVariable(name string, value string) error {
 	}
 	defer key.Close()
 
-	if err := key.SetStringValue(name, value); err != nil {
+	if err := key.SetExpandStringValue(name, value); err != nil {
 		return fmt.Errorf("failed to set environment registry value: %w", err)
 	}
 
