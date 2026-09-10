@@ -1,13 +1,14 @@
 package list
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/Protract-123/mocha/config"
-	"github.com/Protract-123/mocha/manifest"
 	"github.com/Protract-123/mocha/output"
+	"github.com/Protract-123/mocha/pkg"
 )
 
 type Command struct{}
@@ -25,6 +26,10 @@ func (cmd *Command) Run() error {
 	var rows [][]string
 
 	for _, app := range apps {
+		if !app.IsDir() {
+			continue
+		}
+
 		versions, err := os.ReadDir(filepath.Join(appDir, app.Name()))
 		if err != nil {
 			return fmt.Errorf("failed to read directory %q: %w", app.Name(), err)
@@ -35,19 +40,17 @@ func (cmd *Command) Run() error {
 				continue
 			}
 
-			info := manifest.Info{
-				Name:         app.Name(),
-				Bucket:       "",
-				Version:      version.Name(),
-				ManifestPath: "",
-			}
-
-			info, err := manifest.PopulateInfo(info, mochaDir)
+			installJson, err := os.ReadFile(filepath.Join(appDir, app.Name(), version.Name(), "install.json"))
 			if err != nil {
-				return fmt.Errorf("failed to fetch app details for %q: %w", app.Name(), err)
+				return fmt.Errorf("failed to read install JSON of %q: %w", app.Name(), err)
 			}
 
-			rows = append(rows, []string{info.Name, info.Version, info.Bucket})
+			installInfo := pkg.InstallInfo{}
+			if err := json.Unmarshal(installJson, &installInfo); err != nil {
+				return fmt.Errorf("failed to unmarshal install JSON: %w", err)
+			}
+
+			rows = append(rows, []string{app.Name(), version.Name(), installInfo.Bucket})
 		}
 	}
 
