@@ -41,7 +41,7 @@ func (cmd *Command) Run() error {
 		}
 	}
 
-	if err := bucket.DownloadBucket(identifiedBucket, mochaDir); err != nil {
+	if err := bucket.Download(identifiedBucket, mochaDir); err != nil {
 		return fmt.Errorf("failed to download bucket %q: %w", identifiedBucket.Name, err)
 	}
 

@@ -39,7 +39,7 @@ func GetKnownBuckets(mochaDir string) ([]Bucket, error) {
 		}
 	}
 
-	knownBuckets, err := ParseBucketList(knownBucketsPath)
+	knownBuckets, err := ParseList(knownBucketsPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse known buckets: %w", err)
 	}

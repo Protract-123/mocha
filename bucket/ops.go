@@ -1,12 +1,14 @@
 package bucket
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 type Bucket struct {
@@ -14,7 +16,7 @@ type Bucket struct {
 	Source string
 }
 
-func DownloadBucket(bucket Bucket, mochaDir string) error {
+func Download(bucket Bucket, mochaDir string) error {
 	bucketsDir := filepath.Join(mochaDir, "buckets")
 	if err := os.MkdirAll(bucketsDir, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to make bucket directory: %w", err)
@@ -38,46 +40,38 @@ func DownloadBucket(bucket Bucket, mochaDir string) error {
 	return nil
 }
 
-func DeleteBucket(name string, mochaDir string) error {
+func Delete(name string, mochaDir string) error {
 	if err := os.RemoveAll(filepath.Join(mochaDir, "buckets", name)); err != nil {
 		return fmt.Errorf("failed to delete bucket %q: %w", name, err)
 	}
 	return nil
 }
 
-func UpdateAllBuckets(mochaDir string) error {
-	buckets, err := os.ReadDir(filepath.Join(mochaDir, "buckets"))
-	if err != nil {
-		return fmt.Errorf("failed to get all buckets: %w", err)
-	}
-
-	for _, entry := range buckets {
-		if !entry.IsDir() {
-			continue
-		}
-
-		if err := UpdateBucket(entry.Name(), mochaDir); err != nil {
-			return fmt.Errorf("failed to update bucket %q: %w", entry.Name(), err)
-		}
-	}
-
-	return nil
-}
-
-func UpdateBucket(bucketName string, mochaDir string) error {
+func Update(bucketName string, mochaDir string) error {
 	cmd := exec.Command("git", "pull")
 	cmd.Dir = filepath.Join(mochaDir, "buckets", bucketName)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
-	if err := cmd.Run(); err != nil {
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	var exitErr *exec.ExitError
+
+	switch {
+	case err == nil:
+		break
+	case errors.As(err, &exitErr):
+		cmdError := fmt.Errorf("%s: %w", strings.TrimSpace(stderr.String()), err)
+		return fmt.Errorf("failed to run git pull: %w", cmdError)
+	default:
 		return fmt.Errorf("failed to run git pull: %w", err)
+
 	}
 
 	return nil
 }
 
-func ParseBucketList(file string) ([]Bucket, error) {
+func ParseList(file string) ([]Bucket, error) {
 	bucketsJson, err := os.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read buckets list file: %w", err)

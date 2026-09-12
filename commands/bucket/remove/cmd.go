@@ -13,7 +13,7 @@ type Command struct {
 }
 
 func (cmd *Command) Run() error {
-	if err := bucket.DeleteBucket(cmd.Name, config.Current().MochaDirectory); err != nil {
+	if err := bucket.Delete(cmd.Name, config.Current().MochaDirectory); err != nil {
 		return fmt.Errorf("failed to delete bucket %q: %w", cmd.Name, err)
 	}
 

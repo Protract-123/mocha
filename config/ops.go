@@ -13,12 +13,12 @@ import (
 var ErrNotFound = errors.New("mocha.toml not found")
 
 var (
-	currentConfig  MochaConfiguration
-	loadConfigOnce sync.Once
+	currentConfig MochaConfiguration
+	setConfigOnce sync.Once
 )
 
 func Init(config MochaConfiguration) {
-	loadConfigOnce.Do(func() {
+	setConfigOnce.Do(func() {
 		currentConfig = config
 	})
 }
