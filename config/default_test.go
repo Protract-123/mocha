@@ -46,8 +46,8 @@ func TestWriteDefault(tester *testing.T) {
 				t.Fatalf("failed to read back written config: %v", err)
 			}
 
-			if !bytes.Equal(defaultConfigToml, written) {
-				t.Errorf("WriteDefault() wrote %q, want %q", written, defaultConfigToml)
+			if !bytes.Equal(defaultToml, written) {
+				t.Errorf("WriteDefault() wrote %q, want %q", written, defaultToml)
 			}
 		})
 	}
@@ -55,11 +55,11 @@ func TestWriteDefault(tester *testing.T) {
 
 func TestDefaultMatchesFile(tester *testing.T) {
 	var configFromFile MochaConfiguration
-	if _, err := toml.DecodeFile("default_config.toml", &configFromFile); err != nil {
-		tester.Fatalf("failed to decode default_config.toml: %v", err)
+	if _, err := toml.DecodeFile("default.toml", &configFromFile); err != nil {
+		tester.Fatalf("failed to decode default.toml: %v", err)
 	}
 
 	if !reflect.DeepEqual(configFromFile, Default()) {
-		tester.Errorf("default_config.toml is out of sync with DefaultConfig()")
+		tester.Errorf("default.toml is out of sync with Default()")
 	}
 }

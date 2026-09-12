@@ -6,8 +6,8 @@ import (
 	"os"
 )
 
-//go:embed default_config.toml
-var defaultConfigToml []byte
+//go:embed default.toml
+var defaultToml []byte
 
 func Default() MochaConfiguration {
 	return MochaConfiguration{
@@ -26,7 +26,7 @@ func Default() MochaConfiguration {
 }
 
 func WriteDefault(path string) error {
-	if err := os.WriteFile(path, defaultConfigToml, os.ModePerm); err != nil {
+	if err := os.WriteFile(path, defaultToml, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to write default config: %w", err)
 	}
 

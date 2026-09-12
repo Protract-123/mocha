@@ -29,7 +29,7 @@ func Current() MochaConfiguration {
 
 func Load(mochaDir string) (MochaConfiguration, error) {
 	config := Default()
-	configPath, err := Location(mochaDir)
+	configPath, err := Path(mochaDir)
 
 	if errors.Is(err, ErrNotFound) {
 		return Default(), ErrNotFound
@@ -44,15 +44,15 @@ func Load(mochaDir string) (MochaConfiguration, error) {
 	return config, nil
 }
 
-func Location(mochaDir string) (string, error) {
-	configLocations := []string{
+func Path(mochaDir string) (string, error) {
+	paths := []string{
 		filepath.Join(mochaDir, "mocha.toml"),
 		filepath.Join(os.ExpandEnv("$APPDATA"), "mocha", "mocha.toml"),
 		filepath.Join(os.ExpandEnv("$XDG_CONFIG_HOME"), "mocha", "mocha.toml"),
 		filepath.Join(os.ExpandEnv("$USERPROFILE"), ".config", "mocha", "mocha.toml"),
 	}
 
-	for _, path := range configLocations {
+	for _, path := range paths {
 		if !filepath.IsAbs(path) {
 			continue
 		}

@@ -12,7 +12,7 @@ import (
 type Command struct{}
 
 func (cmd *Command) Run() error {
-	configPath, err := config.Location(config.Current().MochaDirectory)
+	configPath, err := config.Path(config.Current().MochaDirectory)
 	if errors.Is(err, config.ErrNotFound) {
 		if err := config.WriteDefault(configPath); err != nil {
 			return fmt.Errorf("failed to write default config: %w", err)
