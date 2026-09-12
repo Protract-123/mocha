@@ -5,19 +5,18 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/fatih/color"
 )
 
 func LogSuccess(format string, args ...any) {
-	message := format
-	if len(args) > 0 {
-		message = fmt.Sprintf(format, args...)
+	var output string
+
+	if len(args) == 0 {
+		output = activeTheme.SuccessColor.Sprint(format)
+	} else if len(args) > 0 {
+		output = activeTheme.SuccessColor.Sprintf(format, args...)
 	}
 
-	if _, err := activeTheme.SuccessColor.Fprintln(os.Stderr, message); err != nil {
-		return
-	}
+	_, _ = fmt.Fprintln(os.Stderr, output)
 }
 
 func LogError(providedError error) {
@@ -44,46 +43,39 @@ func LogError(providedError error) {
 
 	for i := 1; i < len(lines); i++ {
 		if i == len(lines)-1 {
-			sb.WriteString(fmt.Sprintf("└── Root Cause: %s", lines[i]))
+			sb.WriteString(fmt.Sprintf("└── %s", lines[i]))
 		} else {
 			sb.WriteString(fmt.Sprintf("├── %s\n", lines[i]))
 		}
 	}
 
-	if _, err := activeTheme.ErrorColor.Fprintln(os.Stderr, sb.String()); err != nil {
-		return
-	}
+	_, _ = fmt.Fprintln(os.Stderr, activeTheme.ErrorColor.Sprint(sb.String()))
 }
 
 func LogWarning(format string, args ...any) {
-	message := format
-	if len(args) > 0 {
-		message = fmt.Sprintf(format, args...)
+	var output string
+
+	if len(args) == 0 {
+		output = activeTheme.WarningColor.Sprint(format)
+	} else if len(args) > 0 {
+		output = activeTheme.WarningColor.Sprintf(format, args...)
 	}
 
-	if _, err := activeTheme.WarningColor.Fprintln(os.Stderr, message); err != nil {
-		return
-	}
+	_, _ = fmt.Fprintln(os.Stderr, output)
 }
 
 func LogInfo(format string, args ...any) {
-	message := format
-	if len(args) > 0 {
-		message = fmt.Sprintf(format, args...)
+	var output string
+
+	if len(args) == 0 {
+		output = activeTheme.InfoColor.Sprint(format)
+	} else if len(args) > 0 {
+		output = activeTheme.InfoColor.Sprintf(format, args...)
 	}
 
-	if _, err := activeTheme.InfoColor.Fprintln(os.Stderr, message); err != nil {
-		return
-	}
+	_, _ = fmt.Fprintln(os.Stderr, output)
 }
 
 func LogOutput(format string, args ...any) {
-	message := format
-	if len(args) > 0 {
-		message = fmt.Sprintf(format, args...)
-	}
-
-	if _, err := color.New().Fprintln(os.Stdout, message); err != nil {
-		return
-	}
+	_, _ = fmt.Fprintln(os.Stderr, fmt.Sprintf(format, args...))
 }
