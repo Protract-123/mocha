@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/Protract-123/mocha/fileops"
 	"github.com/Protract-123/mocha/manifest"
@@ -66,11 +65,10 @@ type installFileOptions struct {
 
 func installFile(filePath string, installDir string, mochaDir string, options installFileOptions) error {
 	extension := filepath.Ext(filePath)
-	fileName := strings.TrimSuffix(filepath.Base(filePath), extension)
 
-	tempDir := filepath.Join(mochaDir, "temp", fileName)
-	if err := os.MkdirAll(tempDir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", tempDir, err)
+	tempDir, err := os.MkdirTemp(mochaDir, "temp-*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
 	defer os.RemoveAll(filepath.Join(mochaDir, "temp"))
 

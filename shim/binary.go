@@ -14,14 +14,14 @@ import (
 )
 
 func InstallBinary(release Release, arch string, mochaDir string) error {
-	tempDirectory := filepath.Join(mochaDir, "temp")
-	if err := os.MkdirAll(tempDirectory, os.ModePerm); err != nil {
+	tempDir, err := os.MkdirTemp(mochaDir, "temp-*")
+	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
-	defer os.RemoveAll(tempDirectory)
+	defer os.RemoveAll(tempDir)
 
 	zipName := fmt.Sprintf("shim-%s.zip", arch)
-	zipPath := filepath.Join(tempDirectory, zipName)
+	zipPath := filepath.Join(tempDir, zipName)
 
 	downloadURL, err := url.JoinPath("https://github.com/ScoopInstaller/Shim/releases/download", release.Language, "v"+release.Version, zipName)
 	if err != nil {
@@ -32,16 +32,16 @@ func InstallBinary(release Release, arch string, mochaDir string) error {
 		return fmt.Errorf("failed to download %s: %w", zipName, err)
 	}
 
-	if err := fileops.ExtractZip(zipPath, tempDirectory); err != nil {
+	if err := fileops.ExtractZip(zipPath, tempDir); err != nil {
 		return fmt.Errorf("failed to extract %s: %w", zipName, err)
 	}
 
-	binaryBytes, err := os.ReadFile(filepath.Join(tempDirectory, "shim.exe"))
+	binaryBytes, err := os.ReadFile(filepath.Join(tempDir, "shim.exe"))
 	if err != nil {
 		return fmt.Errorf("failed to read shim.exe: %w", err)
 	}
 
-	checksumBytes, err := os.ReadFile(filepath.Join(tempDirectory, "shim.exe.sha256"))
+	checksumBytes, err := os.ReadFile(filepath.Join(tempDir, "shim.exe.sha256"))
 	if err != nil {
 		return fmt.Errorf("failed to read shim.exe.sha256: %w", err)
 	}
