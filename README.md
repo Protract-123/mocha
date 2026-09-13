@@ -25,7 +25,7 @@ Some of these tools can be installed through mocha once it has been set up.
 
 ### Install from release
 
-Prebuilt binaries will be available on the [Releases](https://github.com/Protract-123/mocha/releases) page. Download the binary and place it in a folder on your PATH.
+Prebuilt binaries are available on the [Releases](https://github.com/Protract-123/mocha/releases) page. Download the binary for your architecture and place it in a folder on your PATH.
 
 ### Install with Go
 
