@@ -5,7 +5,6 @@
 #   - $USERPROFILE/.config/mocha/mocha.toml
 
 [cat]
-include-deprecated = false
 command = ""
 
 [colors]

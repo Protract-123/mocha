@@ -12,8 +12,7 @@ var defaultToml []byte
 func Default() MochaConfiguration {
 	return MochaConfiguration{
 		Cat: CatConfig{
-			IncludeDeprecated: false,
-			Command:           "",
+			Command: "",
 		},
 		Colors: ColorConfig{
 			SuccessColor: "magenta",

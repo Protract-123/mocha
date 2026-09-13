@@ -8,8 +8,7 @@ type MochaConfiguration struct {
 }
 
 type CatConfig struct {
-	IncludeDeprecated bool   `toml:"include-deprecated"`
-	Command           string `toml:"command"`
+	Command string `toml:"command"`
 }
 
 type ColorConfig struct {
