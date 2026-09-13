@@ -70,7 +70,7 @@ func installFile(filePath string, installDir string, mochaDir string, options in
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
-	defer os.RemoveAll(filepath.Join(mochaDir, "temp"))
+	defer os.RemoveAll(tempDir)
 
 	switch extension {
 	case ".zip":
