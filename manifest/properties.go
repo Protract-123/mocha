@@ -59,7 +59,7 @@ type ExecutableEntry struct {
 	Args  string
 }
 
-func GetExecutableEntries(jsonData map[string]any, architecture string) ([]ExecutableEntry, error) {
+func GetExecutableEntries(jsonData map[string]any, architecture string) []ExecutableEntry {
 	var rawEntries [][]string
 	if val, err := getArchSpecificProperty("bin", architecture, jsonData); err == nil {
 		rawEntries = extractAsArrayOfArray(val)
@@ -83,7 +83,7 @@ func GetExecutableEntries(jsonData map[string]any, architecture string) ([]Execu
 		entries[i] = entry
 	}
 
-	return entries, nil
+	return entries
 }
 
 type ShortcutEntry struct {

@@ -40,11 +40,7 @@ func Link(info manifest.Info, mochaDir string) error {
 		return fmt.Errorf("failed to create junction: %w", err)
 	}
 
-	binaries, err := manifest.GetExecutableEntries(installInfo.ManifestJson, installInfo.Arch)
-	if err != nil {
-		return fmt.Errorf("failed to get binaries to shim: %w", err)
-	}
-
+	binaries := manifest.GetExecutableEntries(installInfo.ManifestJson, installInfo.Arch)
 	for _, binary := range binaries {
 		shimName := strings.TrimSuffix(filepath.Base(binary.Alias), filepath.Ext(binary.Alias))
 		shimPath := filepath.Join(currentDir, binary.Exe)
@@ -149,11 +145,7 @@ func Unlink(appName string, mochaDir string) error {
 		return fmt.Errorf("failed to get app install info: %w", err)
 	}
 
-	binaries, err := manifest.GetExecutableEntries(installInfo.ManifestJson, installInfo.Arch)
-	if err != nil {
-		return fmt.Errorf("failed to get shims to remove: %w", err)
-	}
-
+	binaries := manifest.GetExecutableEntries(installInfo.ManifestJson, installInfo.Arch)
 	for _, binary := range binaries {
 		shimName := strings.TrimSuffix(filepath.Base(binary.Alias), filepath.Ext(binary.Alias))
 		if err := shim.DeleteShim(shimName, mochaDir); err != nil {
