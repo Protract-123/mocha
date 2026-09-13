@@ -31,8 +31,6 @@ func CreateShim(info Info, mochaDir string) error {
 		return fmt.Errorf("failed to create shim directory: %w", err)
 	}
 
-	overrideSubsystem := true
-
 	fileExtension := strings.ToLower(filepath.Ext(info.Target))
 	switch {
 	case fileExtension == ".exe" || fileExtension == ".com":
@@ -70,10 +68,11 @@ func CreateShim(info Info, mochaDir string) error {
 		info.Args = `"` + info.Target + `"` + " " + info.Args
 		info.Target = pythonPath
 	default:
+		output.LogWarning("unknown extension %q, skipping shim", fileExtension)
 		return nil
 	}
 
-	if err := copyShimBinary(info, overrideSubsystem, mochaDir); err != nil {
+	if err := copyShimBinary(info, true, mochaDir); err != nil {
 		return fmt.Errorf("failed to create exe shim: %w", err)
 	}
 
