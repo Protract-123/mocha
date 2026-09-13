@@ -28,7 +28,12 @@ func (cmd *Command) Run() error {
 		return fmt.Errorf("failed to confirm target's existence: %w", err)
 	}
 
-	if _, err := os.Stat(cmd.Path); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(cmd.Path); err == nil {
+		shimPath, err = filepath.Abs(cmd.Path)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path of shim: %w", err)
+		}
+	} else if errors.Is(err, os.ErrNotExist) {
 		resolved, err := exec.LookPath(cmd.Path)
 		if err != nil {
 			return fmt.Errorf("failed to lookup target's path: %w", err)

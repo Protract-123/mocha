@@ -12,3 +12,8 @@ success = "magenta"
 error = "red"
 warning = "yellow"
 info = "blue"
+
+[shim]
+java-runner = "java.exe"
+powershell-runner = "powershell.exe"
+python-runner = "python.exe"

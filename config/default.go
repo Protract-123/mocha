@@ -20,6 +20,11 @@ func Default() MochaConfiguration {
 			WarningColor: "yellow",
 			InfoColor:    "blue",
 		},
+		Shim: ShimConfig{
+			JavaRunner:       "java.exe",
+			PowerShellRunner: "powershell.exe",
+			PythonRunner:     "python.exe",
+		},
 		MochaDirectory: "",
 	}
 }

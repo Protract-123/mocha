@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Protract-123/mocha/config"
 	"github.com/Protract-123/mocha/output"
 )
 
@@ -43,27 +44,24 @@ func CreateShim(info Info, mochaDir string) error {
 		info.Args = "/C " + `"` + info.Target + `"` + " " + info.Args
 		info.Target = cmdPath
 	case fileExtension == ".ps1":
-		// TODO: make powershell interpreter name/path customizable
-		powershellPath, err := exec.LookPath("powershell.exe")
+		powershellPath, err := exec.LookPath(config.Current().Shim.PowerShellRunner)
 		if err != nil {
-			return fmt.Errorf("failed to find cmd executable: %w", err)
+			return fmt.Errorf("failed to find %q: %w", config.Current().Shim.PowerShellRunner, err)
 		}
 		info.Args = "-File " + `"` + info.Target + `"` + " " + info.Args
 		info.Target = powershellPath
 	case fileExtension == ".jar":
-		// TODO: make java runtime name/path customizable
-		powershellPath, err := exec.LookPath("java.exe")
+		javaPath, err := exec.LookPath(config.Current().Shim.JavaRunner)
 		if err != nil {
-			return fmt.Errorf("failed to find cmd executable: %w", err)
+			return fmt.Errorf("failed to find %q: %w", config.Current().Shim.JavaRunner, err)
 		}
 		info.Args = "-jar " + `"` + info.Target + `"` + " " + info.Args
-		info.Target = powershellPath
+		info.Target = javaPath
 
 	case fileExtension == ".py":
-		// TODO: make python interpreter name/path customizable
-		pythonPath, err := exec.LookPath("python3.14.exe")
+		pythonPath, err := exec.LookPath(config.Current().Shim.PythonRunner)
 		if err != nil {
-			return fmt.Errorf("failed to find python executable: %w", err)
+			return fmt.Errorf("failed to find %q: %w", config.Current().Shim.PythonRunner, err)
 		}
 		info.Args = `"` + info.Target + `"` + " " + info.Args
 		info.Target = pythonPath
