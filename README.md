@@ -1,5 +1,7 @@
 # mocha
 
+*AI Disclaimer*: I used AI for code review, and for minor things like porting tests from the original scoop. All code was reviewed by me, and a large majority written by me.
+
 mocha is a [Scoop](https://github.com/ScoopInstaller/Scoop) alternative written in Go. I have the following goals for this project: 
 
 - 100% backward compatibility with existing Scoop packages and buckets
