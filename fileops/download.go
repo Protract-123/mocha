@@ -17,7 +17,11 @@ func DownloadFile(url string, downloadPath string) error {
 		return fmt.Errorf("failed to create directory %s: %w", downloadPath, err)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSHandshakeTimeout = 10 * time.Second
+	transport.ResponseHeaderTimeout = 10 * time.Second
+
+	client := &http.Client{Transport: transport}
 
 	resp, err := client.Get(url)
 	if err != nil {
