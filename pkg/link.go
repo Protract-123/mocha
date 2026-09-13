@@ -12,8 +12,6 @@ import (
 	"github.com/Protract-123/mocha/shim"
 )
 
-// TODO: env_set requires variable parsing (e.g. $dir)
-
 func Link(info manifest.Info, mochaDir string) error {
 	if info.Name == "" {
 		return fmt.Errorf("package info doesn't have a name")
@@ -89,7 +87,7 @@ func Link(info manifest.Info, mochaDir string) error {
 
 	envEntries := manifest.GetEnvEntries(installInfo.ManifestJson, installInfo.Arch)
 	for key, value := range envEntries {
-		if err := fileops.SetEnvironmentVariable(key, value); err != nil {
+		if err := fileops.SetEnvironmentVariable(key, expandEnvVar(value, info.Name, mochaDir)); err != nil {
 			return fmt.Errorf("failed to set environment variable %q: %w", key, err)
 		}
 	}
@@ -135,6 +133,27 @@ func Link(info manifest.Info, mochaDir string) error {
 	}
 
 	return nil
+}
+
+func expandEnvVar(envVar string, app string, mochaDir string) string {
+	replaced := false
+
+	if strings.Contains(envVar, "$dir") {
+		path := filepath.Join(mochaDir, "apps", app, "current")
+		envVar = strings.Replace(envVar, "$dir", path, -1)
+		replaced = true
+	}
+
+	if strings.Contains(envVar, "$persist_dir") {
+		path := filepath.Join(mochaDir, "persist", app)
+		envVar = strings.Replace(envVar, "$persist_dir", path, -1)
+		replaced = true
+	}
+
+	if replaced {
+		return filepath.Clean(envVar)
+	}
+	return envVar
 }
 
 func Unlink(appName string, mochaDir string) error {
