@@ -77,5 +77,5 @@ func LogInfo(format string, args ...any) {
 }
 
 func LogOutput(format string, args ...any) {
-	_, _ = fmt.Fprintln(os.Stderr, fmt.Sprintf(format, args...))
+	_, _ = fmt.Fprintln(os.Stdout, fmt.Sprintf(format, args...))
 }
