@@ -20,7 +20,8 @@ func (cmd *Command) Run() error {
 	}
 
 	if len(bucketMetadata) == 0 {
-		return fmt.Errorf("no buckets to show")
+		output.LogInfo("no buckets found")
+		return nil
 	}
 
 	headers := []string{"Name", "Source", "Updated", "Manifests"}

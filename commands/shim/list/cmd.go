@@ -17,7 +17,8 @@ func (cmd *Command) Run() error {
 	}
 
 	if len(shims) == 0 {
-		return fmt.Errorf("no shims found")
+		output.LogInfo("no shims found")
+		return nil
 	}
 
 	headers := []string{"Name", "Destination"}

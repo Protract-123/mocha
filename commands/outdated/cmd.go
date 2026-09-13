@@ -68,7 +68,8 @@ func (cmd *Command) Run() error {
 	}
 
 	if len(rows) <= 0 {
-		return fmt.Errorf("no apps are outdated")
+		output.LogInfo("no apps are outdated")
+		return nil
 	}
 
 	tableConfig := output.TableConfig{
