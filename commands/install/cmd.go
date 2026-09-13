@@ -18,8 +18,6 @@ type Command struct {
 	SkipVerify bool     `arg:"-s,--skip-verify" help:"skip hash check"`
 }
 
-// TODO: error if package already installed
-
 func (cmd *Command) Run() error {
 	downloadArch, err := pkg.DownloadArch()
 	if err != nil {
@@ -38,6 +36,12 @@ func (cmd *Command) Run() error {
 		info, err := manifest.ParseSpec(spec)
 		if err != nil {
 			return fmt.Errorf("failed to parse manifest spec %q: %w", spec, err)
+		}
+
+		if _, err := os.Stat(filepath.Join(mochaDir, "apps", info.Name)); err == nil {
+			return fmt.Errorf("app %q is already installed, please uninstall before installing", spec)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("failed to confirm if %q is already installed: %w", spec, err)
 		}
 
 		info, err = manifest.PopulateInfo(info, mochaDir)

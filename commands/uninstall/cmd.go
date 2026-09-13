@@ -1,6 +1,7 @@
 package uninstall
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,10 +31,10 @@ func (cmd *Command) Run() error {
 		if info.Version != "" {
 			deletionDir = filepath.Join(appDir, info.Version)
 		} else {
-			deletionDir = filepath.Join(appDir)
+			deletionDir = appDir
 		}
-
-		if _, err := os.Stat(deletionDir); os.IsNotExist(err) {
+		
+		if _, err := os.Stat(deletionDir); errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("%q is not installed", spec)
 		} else if err != nil {
 			return fmt.Errorf("failed to check if %q exists: %w", spec, err)

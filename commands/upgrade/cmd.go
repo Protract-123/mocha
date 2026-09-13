@@ -58,7 +58,7 @@ func (cmd *Command) Run() error {
 
 	for _, app := range appList {
 		infoPath := filepath.Join(mochaDir, "apps", app, "current", "install.json")
-		if _, err := os.Stat(infoPath); os.IsNotExist(err) {
+		if _, err := os.Stat(infoPath); errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("install info file does not exist for %s", app)
 		} else if err != nil {
 			return fmt.Errorf("failed to confirm if install info exists for %s: %w", app, err)
