@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Build Windows
+        env:
+          GOOS: windows
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
+        run: go build -ldflags="-s -w" -trimpath -o mocha.exe .
+
+      - name: Package
+        run: Compress-Archive -Path mocha.exe, LICENSE -DestinationPath mocha-windows-${{ matrix.arch }}.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mocha-windows-${{ matrix.arch }}
+          path: mocha-windows-${{ matrix.arch }}.zip
+
+  release:
+    needs: build-windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: mocha-windows-*
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*.zip
