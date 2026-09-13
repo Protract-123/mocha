@@ -33,7 +33,7 @@ func (cmd *Command) Run() error {
 		editorCmd.Stderr = os.Stderr
 		err = editorCmd.Run()
 	} else {
-		err = exec.Command("cmd.exe", "/c", "start", configPath).Run()
+		err = exec.Command("cmd.exe", "/c", "start", "", configPath).Run()
 	}
 
 	if err != nil {
