@@ -26,6 +26,15 @@ func CompareVersions(reference string, difference string) int {
 	referenceParts := tokenizeVersion(reference)
 	differenceParts := tokenizeVersion(difference)
 
+	switch {
+	case len(referenceParts) == 0 && len(differenceParts) == 0:
+		return 0
+	case len(differenceParts) == 0:
+		return -1
+	case len(referenceParts) == 0:
+		return 1
+	}
+
 	if referenceParts[0] == "nightly" && differenceParts[0] == "nightly" {
 		return 0
 	}
