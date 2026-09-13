@@ -13,7 +13,7 @@ import (
 
 // Inspired from https://gist.github.com/cnu/026744b1e86c6d9e22313d06cba4c2e9
 
-func DownloadFile(url string, downloadPath string) error {
+func DownloadFile(url string, downloadPath string, progressBar bool) error {
 	err := os.MkdirAll(filepath.Dir(downloadPath), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", downloadPath, err)
@@ -44,15 +44,23 @@ func DownloadFile(url string, downloadPath string) error {
 	fmt.Fprint(os.Stderr, "\x1b[?25l")
 	defer fmt.Fprint(os.Stderr, "\x1b[?25h")
 
-	bar := progressbar.DefaultBytes(
-		resp.ContentLength,
-		fmt.Sprintf("downloading %s", filepath.Base(downloadPath)),
-	)
+	if progressBar {
+		bar := progressbar.DefaultBytes(
+			resp.ContentLength,
+			fmt.Sprintf("downloading %s", filepath.Base(downloadPath)),
+		)
 
-	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
-	if err != nil {
-		_ = os.Remove(downloadPath)
-		return fmt.Errorf("failed to write file: %w", err)
+		_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
+		if err != nil {
+			_ = os.Remove(downloadPath)
+			return fmt.Errorf("failed to write file: %w", err)
+		}
+	} else {
+		_, err = io.Copy(out, resp.Body)
+		if err != nil {
+			_ = os.Remove(downloadPath)
+			return fmt.Errorf("failed to write file: %w", err)
+		}
 	}
 
 	err = out.Sync()

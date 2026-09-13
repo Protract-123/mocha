@@ -28,7 +28,7 @@ func InstallBinary(release Release, arch string, mochaDir string) error {
 		return fmt.Errorf("failed to create download url: %w", err)
 	}
 
-	if err := fileops.DownloadFile(downloadURL, zipPath); err != nil {
+	if err := fileops.DownloadFile(downloadURL, zipPath, true); err != nil {
 		return fmt.Errorf("failed to download %s: %w", zipName, err)
 	}
 

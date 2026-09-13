@@ -52,7 +52,7 @@ func Download(pkg Package, mochaDir string, options DownloadOptions) ([]Download
 
 		if !cached || options.Force {
 			output.LogInfo("downloading %s to %s", entry.URL, downloadPath)
-			if err := fileops.DownloadFile(entry.URL, downloadPath); err != nil {
+			if err := fileops.DownloadFile(entry.URL, downloadPath, true); err != nil {
 				return nil, fmt.Errorf("failed to download %s: %w", filename, err)
 			}
 			output.LogInfo("downloaded %s", filename)

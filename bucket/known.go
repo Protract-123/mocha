@@ -49,7 +49,7 @@ func GetKnownBuckets(mochaDir string) ([]Bucket, error) {
 
 func UpdateKnownBuckets(mochaDir string) error {
 	knownBucketsPath := filepath.Join(mochaDir, "known_buckets.json")
-	if err := fileops.DownloadFile(knownBucketsSourceFile, knownBucketsPath); err != nil {
+	if err := fileops.DownloadFile(knownBucketsSourceFile, knownBucketsPath, false); err != nil {
 		return fmt.Errorf("failed to download known_buckets.json: %w", err)
 	}
 
