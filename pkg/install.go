@@ -72,6 +72,8 @@ func installFile(filePath string, installDir string, mochaDir string, options in
 	}
 	defer os.RemoveAll(tempDir)
 
+	tempDir = filepath.Clean(tempDir)
+
 	switch extension {
 	case ".zip":
 		if err := fileops.ExtractZip(filePath, tempDir); err != nil {

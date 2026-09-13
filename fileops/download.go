@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/schollz/progressbar/v3"
 )
 
 // Inspired from https://gist.github.com/cnu/026744b1e86c6d9e22313d06cba4c2e9
@@ -39,7 +41,15 @@ func DownloadFile(url string, downloadPath string) error {
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
+	fmt.Fprint(os.Stderr, "\x1b[?25l")
+	defer fmt.Fprint(os.Stderr, "\x1b[?25h")
+
+	bar := progressbar.DefaultBytes(
+		resp.ContentLength,
+		fmt.Sprintf("downloading %s", filepath.Base(downloadPath)),
+	)
+
+	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
 	if err != nil {
 		_ = os.Remove(downloadPath)
 		return fmt.Errorf("failed to write file: %w", err)
