@@ -36,6 +36,10 @@ func Download(pkg Package, mochaDir string, options DownloadOptions) ([]Download
 	for _, entry := range downloadEntries {
 		filename := getFileNameFromUrl(entry.URL)
 
+		if entry.Hash == "" && !options.SkipVerify {
+			return nil, fmt.Errorf("no hash in manifest for %s, pass --skip-verify to download without verification", filename)
+		}
+
 		downloadPath, err := fileops.GetCachePath(mochaDir, pkg.Name, pkg.Version, entry.URL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get cache path: %w", err)
